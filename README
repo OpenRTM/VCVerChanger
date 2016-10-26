@@ -1,0 +1,193 @@
+**********************************************************************
+OpenRTM-aistシステム環境変数設定ツールの解説
+
+仕様：・OpenRTM-aistが設定しているシステム環境変数の設定値を確認できる
+　　　・RTM_VC_VERSIONの変更と、この設定を含んでいるパスを更新できる
+　　　・OpenRTM-aistの32bit版と64bit版の両方がインストールされている
+　　　　場合、パス設定を切り替えることができる
+
+実行条件：OpenRTM-aist 1.1.2版のインストール環境。
+　　　　　これ以前のバージョンでは、RTM_VC_VERSIONの環境変数が存在
+　　　　　しない。
+
+実行ファイル名：VCVerChanger.exe
+開発環境：Visual Studio 2010 VC++ MFC
+　　（当初、Visual Studio 2013環境で作成したプロジェクトを手動で
+　　　2010用に変換している）
+
+作成日　2016/10/11
+作成者　河内のぶ
+**********************************************************************
+
+目次
+１．レジストリ操作APIについて
+２．レジストリの更新を反映させるWM_SETTINGCHANGEメッセージ送信
+３．レジストリ値の%で囲まれた変数を展開する
+４．本ツールを管理者権限で実行するように設定する
+５．実行動作
+６．vc2013で作成したプロジェクトをvc2010用に変換する
+
+
+■１．レジストリ操作APIについて
+
+プロセスの環境ブロックにアクセスするAPIとして以下のものがある。
+
+・GetEnvironmentVariable　・・・読み込み
+https://msdn.microsoft.com/ja-jp/library/cc429116.aspx
+・SetEnvironmentVariable　・・・書き込み
+https://msdn.microsoft.com/ja-jp/library/cc429326.aspx
+・ExpandEnvironmentStrings　・・・環境変数内の%%部分を展開する
+https://msdn.microsoft.com/ja-jp/library/cc429716.aspx
+
+これらはレジストリに直接アクセスしていないので、読み込むだけの場合は
+利用できるが、書き込みの場合はレジストリに反映されない。
+
+本ツールの目的は、RTM_VC_VERSION の変更に伴い下記のパスも更新すること
+である。（例：32bit版 OpenRTM-aist インストール環境）
+
+OMNI_ROOT : C:\Program Files (x86)\OpenRTM-aist\1.1.2\omniORB\4.2.1_%RTM_VC_VERSION%\
+PATH      : C:\Program Files (x86)\OpenRTM-aist\1.1.2\bin\%RTM_VC_VERSION%\
+            %OMNI_ROOT%bin\x86_win32\;
+            %OpenCV_DIR%x86\%RTM_VC_VERSION%\bin\
+
+このため、直接レジストリを操作する下記APIを利用する。
+
+・RegOpenKeyEx　・・・レジストリのキーをオープン
+https://msdn.microsoft.com/ja-jp/library/cc429950.aspx
+・RegQueryValueEx　・・・読み込み
+https://msdn.microsoft.com/ja-jp/library/cc429931.aspx
+・RegSetValueEx　・・・書き込み
+https://msdn.microsoft.com/ja-jp/library/cc429936.aspx
+・RegCloseKey　・・・レジストリのキーをクローズ
+https://msdn.microsoft.com/ja-jp/library/cc429930.aspx
+
+指定しているレジストリキー
+HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment
+
+
+■２．レジストリの更新を反映させるWM_SETTINGCHANGEメッセージ送信
+
+レジストリを更新後、コマンドプロンプトのsetコマンドで変更内容が反映
+されるようにするため、WM_SETTINGCHANGEメッセージを送信する。
+
+-----
+////////////////////////////////////////////////////////
+// 関数名：SettingChange
+// 機能　：WM_SETTINGCHANGEメッセージ送信
+// 引数　：無し
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::SettingChange()
+{
+	DWORD dwReturnValue;
+	LRESULT Ret = SendMessageTimeout(
+		HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)("Environment"),
+		SMTO_ABORTIFHUNG, 5000, &dwReturnValue);
+	if (!Ret)
+	{
+		TRACE("SettingChange error. (%d)\n", Ret);
+	}
+}
+-----
+
+更新ボタン処理の中でこの処理を呼び出している。
+
+-----
+////////////////////////////////////////////////////////
+// 関数名：OnBnClickedUpdate
+// 機能　：更新ボタン処理
+// 引数　：無し
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::OnBnClickedUpdate()
+{
+　　　：
+	//WM_SETTINGCHANGE
+	TRACE("OnBnClickedUpdate : call SettingChange()\n");
+	SettingChange();　　←●
+
+	Sleep(500);
+
+	//書き換え後のレジストリを読み込む
+	OnBnClickedCheck();  ←※確認ボタン処理を呼び出す
+　　　：
+-----
+
+■３．レジストリ値の%で囲まれた変数を展開する
+
+プロセスの環境ブロックにアクセスするAPI（ExpandEnvironmentStrings）を
+利用すると展開されたパスを取得できるが、RegQueryValueExは展開されない。
+
+このため、展開用の関数ReplaceEnvを用意して処理している。
+
+-----
+////////////////////////////////////////////////////////
+// 関数名：ReplaceEnv
+// 機能　：システム環境変数に値に含まれる%%変数を展開する
+//    ・RegQueryValueExはレジストリ値に含まれる%%変数を
+//    　展開してくれないため、本関数で展開させる
+// 引数　：CString Path　：展開前のパス
+// 戻り値：展開後のパス
+////////////////////////////////////////////////////////
+CString  CVCVerChangerDlg::ReplaceEnv(CString Path)
+-----
+
+■４．本ツールを管理者権限で実行するように設定する
+
+・exeファイルを右クリックし、プロパティで「管理者としてこのプログラムを
+　実行する」にチェックが入った状態で生成できるように、プロジェクトの
+　プロパティで指定する
+・ツールバーから「プロジェクト」→「VCVerChangerのプロパティ」→
+　「リンカー」→「マニフェストファイル」を開き、UACの実行レベルを、
+　requierAdministrator にする
+
+■５．実行動作
+
+▼「確認」ボタン
+・レジストリ値の設定を確認できる
+・現在の設定を確認しないと、更新（レジストリ値の変更）はできない仕様
+・OpenRTM-aist1.1.2版以降がインストールされていないと（環境変数の
+　RTM_VC_VERSIONが存在しないと）、以下のメッセージが表示される
+
+「OpenRTM-aist 1.1.2版以降のバージョンがインストールされているか、
+　確認して下さい。」
+
+▼「更新」ボタン
+・確認処理を実行しないと「更新」ボタンが有効にならない
+・Visual Studio Versionをリストから選択し、更新（変更）できる
+・リストでは「Visual C++ 14 2015」等の表示にしていて、処理では
+　内部バージョン番号の「vc14」を使用している
+・更新状況はメッセージを出力している
+・更新処理は何度でも実行できる
+
+▼「切替」ボタン
+・OpenRTM-aistの32bit, 64bit版の両方がインストールされていたら
+　表示される。どちらか一方のバージョンしかインストールされていない
+　場合は表示されない。
+・32/64bitの両バージョンがインストールされたままの状態では、
+　PATHに両方のパスが混じった設定になっている
+・切替機能で、指定したバージョンのパスのみに整理される
+・両バージョンがインストールされているか否かの判断は、システム環境
+　変数からは判断できないので、OpenRTM_DIRが示すディレクトリの存在
+　確認で判断している。
+
+■６．vc2013で作成したプロジェクトをvc2010用に変換する
+・slnとvcxprojファイルを変更する
+
+▼VCVerChanger.sln
+・2行目のバージョン番号
+　　・2013では　12.00
+　　・2010では　11.00
+
+・3行目
+　　・2013では　# Visual Studio 2013
+　　・2010では　# Visual Studio 2010
+
+▼VCVerChanger.vcxproj
+・2行目のToolsVersion
+　　・2013では　12.00
+　　・2010では　4.00
+・22行目PlatformToolset
+　・2013では　v120
+　・2010ではこの設定が無いので下記をコメントアウトしている　
+　　　<PlatformToolset>v120</PlatformToolset>
