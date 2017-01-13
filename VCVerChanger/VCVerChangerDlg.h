@@ -1,9 +1,12 @@
-
-// VCVerChangerDlg.h : ヘッダー ファイル
-//
-
+/////////////////////////////////////////////////////////////////////////////
+// Name			: VCVerChangerDlg.h
+// Create Date	: 2016.10.11
+// Author		: Nobu Kawauchi
+// Copyright (C) 2016 n-ando AIST All Rights Reserved.
+/////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "afxwin.h"
+#include "RegistryUtil.h"
 
 typedef struct VISUAL_STUDIO
 {
@@ -18,7 +21,6 @@ typedef struct ARCH_INFO
 	CString pFilePath;	//Program Files (x86), Program Files
 }ARCH_INFO;
 
-
 // CVCVerChangerDlg ダイアログ
 class CVCVerChangerDlg : public CDialogEx
 {
@@ -31,7 +33,6 @@ enum { IDD = IDD_VCVERCHANGER_DIALOG };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV サポート
-
 
 // 実装
 protected:
@@ -53,32 +54,29 @@ public:
 
 private:
 	void	Init();
-	bool	RegistryReadProc(); //レジストリエントリ読込処理
-
-	//レジストリキーのopen/close
-	void    RegOpen();			
-	void	RegClose();
-
-	//レジストリエントリのread/write
-	CString ReadEnv(LPCTSTR EnvName);
+	bool	RegistryReadProc(); //レジストリ・エントリ読込処理
+	bool	RegistryWriteProc(CString toDir); //レジストリ・エントリ書き込み処理
+	bool	RegistryDeleteProc(CString target); //レジストリ・エントリ削除処理
 	void	RegistryEntryReadErr();
-	LONG	WriteEnv(LPCTSTR EnvName, DWORD type, CString str);
+	void	RegistryEntryErr(LPCTSTR EnvName, LPCTSTR proc);
 
-	//PATHの中から「OpenRTM-aist」を含むものを抜き出す
-	void	GetOpenrtmPath(
-				CString Path, 
+	//targetの中から指定文字列を含むパスを抜き出す
+	void	FindStringFromTargetPath(
+				CString str,
+				CString target,
 				CString& outForGUI, 
 				CString& outForReg,
 				CString& otherPath);
 	
 	CString ReplaceEnv(CString Path);	//システム環境変数値に含まれる%変数%を展開する
 	void    SettingChange();			//WM_SETTINGCHANGEメッセージ送信
-	CString GetTime();					//TRACE用。時刻取得。
 	int		InstalledArchCheck();		//OpenRTM-aistのアーキテクチャを調べる
+	bool	CorrectSystemEnvValue();	//OpenRTM-aistのインストール状況を調べる
+	void	CleanResult();				//ダイアログのResult表示初期化
 
 	//指定のパスに含まれるProgram Filesを切り替える
 	bool	ChangeProgramFilesPath(CString path, 
-					ARCH_INFO* info, CString& outpath);
+					CString toDir, CString& outPath);
 
 	//PATHにOpenRTM-aistの32bit/64bitの両定義が存在チェック
 	bool	PathDoubleDefinitionCheck(CString Path);
@@ -97,17 +95,16 @@ private:
 	CString m_OpenrtmDir;
 	CString m_RtmPath;			//Dialog表示用
 	CString m_RtmPathForReg;	//レジストリ書込用（%変数を含む）
+	CString m_otherPath;		//OpenRTM-aist以外のPATH設定
 	CStatic m_WarningMsg;
 	CStatic m_staticArch;
 
-	HKEY m_hkey;
+	CRegistryUtil m_RegistryUtil;
 	CString m_StatusMsg;
 	CComboBox m_VSVer;
 	CComboBox m_arch;
 	CString m_x86Path;
 	CString m_x64Path;
-	CString m_orgPATH;
-	CString m_otherPath;
 
 	VISUAL_STUDIO*	m_VSInfo;
 	ARCH_INFO*		m_archInfo;
@@ -117,4 +114,5 @@ private:
 
 	//OpenRTM-aist 32bit/64bitインストール状態を示すフラグ
 	bool m_32b64bInstFlg;	//true:両方インストールされている　flase:一方のバージョンのみ
+	
 };

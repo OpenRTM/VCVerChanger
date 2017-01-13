@@ -1,20 +1,20 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name			:VCVerChangerDlg.cpp
+// Name			: VCVerChangerDlg.cpp
 // Description	: implementation of the CVCVerChangerDlg class
 //
 // To check and change the system environment variables of OpenRTM-aist.
-// To operate the registry.
 //
 // Create Date	: 2016.10.11
 // Author		: Nobu Kawauchi
-// Copyright (C) 2016 n-ando All Rights Reserved.
+// Copyright (C) 2016 n-ando AIST All Rights Reserved.
 /////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "afxdialogex.h"
 #include "VCVerChanger.h"
 #include "VCVerChangerDlg.h"
-#include "afxdialogex.h"
 
+#include "atlbase.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -208,7 +208,7 @@ void CVCVerChangerDlg::Init()
 	VISUAL_STUDIO vc_ver[] = {
 		{"Visual C++ 17", "vc17"},
 		{"Visual C++ 16", "vc16"},
-		{"Visual C++ 15", "vc15"},
+		{"Visual C++ 15 2017", "vc15"},
 		{"Visual C++ 14 2015", "vc14"},
 		{"Visual C++ 12 2013", "vc12"},
 		{"Visual C++ 11 2012", "vc11"},
@@ -255,37 +255,6 @@ void CVCVerChangerDlg::Init()
 	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA("確認ボタンを押して下さい。");
 }
 
-////////////////////////////////////////////////////////
-// 関数名：RegOpen
-// 機能　：レジストリキーのオープン
-// 引数　：無し
-// 戻り値：無し
-////////////////////////////////////////////////////////
-void CVCVerChangerDlg::RegOpen()
-{	
-	CString HKLMkey = "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment";
-	LONG ret;
-
-	m_hkey = 0;
-	ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, HKLMkey, 0, KEY_ALL_ACCESS, &m_hkey);
-	if (ret != ERROR_SUCCESS)
-	{
-		TRACE("RegOpenKeyEx Error.\n");
-		return;
-	}
-}
-
-////////////////////////////////////////////////////////
-// 関数名：RegClose
-// 機能　：レジストリキーのクローズ
-// 引数　：無し
-// 戻り値：無し
-////////////////////////////////////////////////////////
-void CVCVerChangerDlg::RegClose()
-{
-	RegCloseKey(m_hkey);
-	m_hkey = 0;
-}
 
 ////////////////////////////////////////////////////////
 // 関数名：OnBnClickedCheck
@@ -299,17 +268,24 @@ void CVCVerChangerDlg::OnBnClickedCheck()
 	int ret;
 	bool bRet;
 
-	TRACE("%s OnBnClickedCheck : 確認ボタン処理\n", GetTime());
+	TRACE("OnBnClickedCheck : 確認ボタン処理\n");
 	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA("");
+
+	m_RegistryUtil.RegOpen();
 
 	//レジストリ読み出し
 	bRet = RegistryReadProc();
-	if (!bRet) return;
+	if (!bRet)
+	{
+		m_RegistryUtil.RegClose();
+		return;
+	}
 
 	//PATHにOpenRTM-aistの32bit/64bitの両定義が存在するか？
 	bRet = PathDoubleDefinitionCheck(m_RtmPath);
 	if(bRet)
-	{		
+	{
+		TRACE("OnBnClickedCheck : OpenRTM-aistのPATHが32bit/64bit両方定義されている\n");
 		str = "OpenRTM-aistのPATHが32bit/64bit両方定義されています。切替ボタンでどちらかに設定して下さい。";
 		GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
 		m_32b64bDualDefineFlg = true;
@@ -317,6 +293,25 @@ void CVCVerChangerDlg::OnBnClickedCheck()
 
 	//本ツールを一度実行すると、PATHの定義は整理済みで
 	//一方のバージョンしか検出できなくなる
+
+
+	//現在環境変数が示しているパスの存在確認
+	if (!(::PathFileExistsA(m_OpenrtmDir) && ::PathIsDirectoryA(m_OpenrtmDir)))
+	{
+		//存在しない場所を指しているので、設定を正す
+		CorrectSystemEnvValue();
+        
+		//レジストリ読み出し
+		bRet = RegistryReadProc();
+		if (!bRet)
+		{
+			m_RegistryUtil.RegClose();
+			return;
+		}
+	}
+
+	m_RegistryUtil.RegClose();
+
 	//ディレクトリの存在確認で両バージョンのインストール
 	//状態をチェックする
 	ret = InstalledArchCheck();
@@ -338,257 +333,61 @@ void CVCVerChangerDlg::OnBnClickedCheck()
 	UpdateData(FALSE);	
 }
 
-////////////////////////////////////////////////////////
-// 関数名：RegistryReadProc
-// 機能　：レジストリ読み込み処理
-// 引数　：無し
-// 戻り値：true:正常終了　false:エントリ未定義
-////////////////////////////////////////////////////////
-bool CVCVerChangerDlg::RegistryReadProc()
-{
-	CString EnvValue = "";
-	CString path, str;
-	int i;
-
-	RegOpen();
-
-	EnvValue = ReadEnv("RTM_VC_VERSION");
-	if (EnvValue == "")
-	{
-		RegistryEntryReadErr();
-		RegClose();
-		return false;
-	}
-	m_VcVersion = EnvValue;
-	for(i=0; i<m_VSVer.GetCount(); i++)
-	{
-		if(m_VcVersion == m_VSInfo[i].Internal_Ver)
-		{
-			m_VSVer.SetCurSel(i);
-			break;
-		}
-	}
-
-	EnvValue = ReadEnv("RTM_BASE");
-	if (EnvValue == "")
-	{
-		RegistryEntryReadErr();
-		RegClose();
-		return false;
-	}
-	m_RtmBase = EnvValue;
-
-	EnvValue = ReadEnv("RTM_ROOT");
-	if (EnvValue == "") return false;
-	m_RtmRoot = EnvValue;
-
-	EnvValue = ReadEnv("RTM_JAVA_ROOT");
-	if (EnvValue == "") return false;
-	m_RtmJavaRoot = EnvValue;
-
-	EnvValue = ReadEnv("OMNI_ROOT");
-	if (EnvValue == "") return false;
-	//レジストリ書き戻し用
-	m_OmniRootForReg = EnvValue; 
-	//GUI表示用は%OMNI_ROOT%を展開させる
-	m_OmniRoot = ReplaceEnv(EnvValue);
-
-	EnvValue = ReadEnv("OpenCV_DIR");
-	if (EnvValue == "") return false;
-	m_OpencvDir = EnvValue;
-
-	EnvValue = ReadEnv("OpenRTM_DIR");
-	if (EnvValue == "") return false;
-	m_OpenrtmDir = EnvValue;
-
-	EnvValue = ReadEnv("Path");
-	if (EnvValue == "") return false;
-	//読み込んだ状態をバックアップしておく
-	m_orgPATH = EnvValue;
-	TRACE("RegistryReadProc : m_orgPATH : %s\n", m_orgPATH);
-	
-	//OpenRTM-aistが設定したパスを切り出す
-	CString str1, str2, str3;	
-	GetOpenrtmPath(EnvValue, str1, str2, str3); 
-	m_RtmPath = str1;
-	m_RtmPathForReg = str2;
-	m_otherPath = str3;
-
-	RegClose();
-	return true;
-}
 
 ////////////////////////////////////////////////////////
-// 関数名：RegistryEntryReadErr
-// 機能　：レジストリエントリ読み込みエラー時の処理
-// 引数　：無し
+// 関数名：FindStringFromTargetPath
+// 機能　：targetの中から指定文字列を含むパスを抜き出す
+//    該当のパスが複数ある場合、区切り文字を"\n"と";"の
+//　　２つのパターンを返す。(out1とout2）
+//　　targetから指定文字列を除外した残りをout3として返す
+// 引数
+//   :in1  :str       :指定文字列
+//   :in2  :target    :対象PATH
+//   :out1 :outForGUI :区切り文字"\n"（GUI表示用）
+//   :out2 :outForReg :区切り文字";"（レジストリ書込用）
+//   :out3 :otherPath :targetの指定文字列以外の部分
 // 戻り値：無し
 ////////////////////////////////////////////////////////
-void CVCVerChangerDlg::RegistryEntryReadErr()
-{
-	CString str;
-
-	str = "OpenRTM-aist 1.1.2版以降のバージョンがインストールされているか、確認して下さい。";
-	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
-	UpdateData(FALSE);
-}
-
-////////////////////////////////////////////////////////
-// 関数名：ReadEnv
-// 機能　：レジストリエントリ読み込み
-// 引数　：LPCTSTR EnvName　：エントリ名
-// 戻り値：エントリ値
-////////////////////////////////////////////////////////
-CString CVCVerChangerDlg::ReadEnv(LPCTSTR EnvName)
-{
-	LONG ret;
-	LPDWORD type = 0;
-	DWORD size;
-	LPBYTE buff = NULL;
-	CString retValue;
-
-	ret = RegQueryValueEx(m_hkey, EnvName, NULL, type, NULL, &size);
-	if (ret != ERROR_SUCCESS)
-	{
-		TRACE("RegQueryValueEx Error.(%d)\n", ret);
-		return NULL;
-	}
-
-	buff = new BYTE[size];
-	memset(buff, 0, size);
-	ret = RegQueryValueEx(m_hkey, EnvName, NULL, type, buff, &size);
-	if (ret != ERROR_SUCCESS)
-	{
-		TRACE("RegQueryValueEx Error.(%d)\n", ret);
-		return NULL;
-	}
-	retValue = (LPCSTR)buff;
-	delete [] buff;
-	return retValue;
-}
-
-////////////////////////////////////////////////////////
-// 関数名：WriteEnv
-// 機能　：レジストリエントリ書き込み
-// 引数　：LPCTSTR EnvName　：エントリ名
-// 戻り値：エントリ値
-////////////////////////////////////////////////////////
-LONG CVCVerChangerDlg::WriteEnv(LPCTSTR EnvName,
-	DWORD type, CString str)
-{
-	LONG ret;
-	rsize_t size;
-	char* buff;
-		
-	size = str.GetLength() + 1;
-	buff = new char[size];
-	strcpy_s(buff, size, str);
-	ret = RegSetValueEx(m_hkey, EnvName, NULL, type, (const BYTE*)(LPCTSTR)buff, size);
-	if (ret != ERROR_SUCCESS)
-	{
-		TRACE("RegSetValueEx Error.(%d)\n", ret);
-		return ret;
-	}
-	TRACE("WriteEnv : EnvName=%s (%s)\n", EnvName, buff);
-	delete[] buff;
-
-	return ret;
-}
-
-////////////////////////////////////////////////////////
-// 関数名：ReplaceEnv
-// 機能　：システム環境変数値に含まれる%%変数を展開する
-//    RegQueryValueExはレジストリ値に含まれる%%変数を
-//    展開してくれないため、展開させる
-// 引数　：CString Path　：展開前のパス
-// 戻り値：展開後のパス
-////////////////////////////////////////////////////////
-CString  CVCVerChangerDlg::ReplaceEnv(CString Path)
-{
-	CString str1, str2, str3, src;
-	src = Path;
-	int ptr = src.Find("%RTM_VC_VERSION%");
-	while (ptr != -1)
-	{
-		str1 = src.Mid(0, ptr);
-		str2 = src.Mid(ptr + 16);
-		str3.Format("%s%s%s", str1, m_VcVersion, str2);
-		src = str3;
-		ptr = src.Find("%RTM_VC_VERSION%");
-		if (ptr < 16) break;
-	}
-
-	ptr = src.Find("%OMNI_ROOT%");
-	while (ptr != -1)
-	{
-		str1 = src.Mid(0, ptr);
-		str2 = src.Mid(ptr + 11);
-		str3.Format("%s%s%s", str1, m_OmniRoot, str2);
-		src = str3;
-		ptr = src.Find("%OMNI_ROOT%");
-		if (ptr < 11) break;
-	}
-
-	ptr = src.Find("%OpenCV_DIR%");
-	while (ptr != -1)
-	{
-		str1 = src.Mid(0, ptr);
-		str2 = src.Mid(ptr + 12);
-		str3.Format("%s%s%s", str1, m_OpencvDir, str2);
-		src = str3;
-		ptr = src.Find("%OpenCV_DIRT%");
-		if (ptr < 10) break;
-	}
-	return src;
-}
-
-////////////////////////////////////////////////////////
-// 関数名：GetOpenrtmPath
-// 機能　：PATHの中から「OpenRTM-aist」を含むものを抜き出す
-//   「OpenRTM-aist」のパスは区切り文字を"\n"と";"の２つの
-//　　パターンを返す。(out1とout2）
-//　　PATHから「OpenRTM-aist」のパスを除いたものをout3として
-//    返す。
-// 引数　：in :Path　：PATHの値
-//    :out1 :outForGUI :区切り文字"\n"（GUI表示用）
-//    :out2 :outForReg :区切り文字";"（レジストリ書込用）
-//    :out3 :otherPath :レジストリのPath書き戻し時に使用
-// 戻り値：無し
-////////////////////////////////////////////////////////
-void CVCVerChangerDlg::GetOpenrtmPath(
-				CString Path, 
+void CVCVerChangerDlg::FindStringFromTargetPath(
+				CString str,
+				CString target,
 				CString& outForGUI, 
 				CString& outForReg,
 				CString& otherPath)
 {
-	CString string, substr;
+	CString replaceStr, orgStr;
 	int pos = 0;
 	int findpos = 0;
 
-	//受け取ったpathを";"で分割する
-	substr = Path.Tokenize(";", pos);
-	while (substr != "")
+	//受け取ったtargetのpathを";"で分割する
+	orgStr = target.Tokenize(";", pos);
+	while (orgStr != "")
 	{
-		//%%変数を展開する
-		string = ReplaceEnv(substr);
-		//OpenRTM-aistを含むパスだけ抜き出す
-		findpos = string.Find("OpenRTM-aist");
+		if (str == "OpenRTM-aist")
+		{
+			//%%変数を展開する
+			replaceStr = ReplaceEnv(orgStr);
+		}else{
+			//%%変数を展開しない
+			replaceStr = orgStr;
+		}
+		//指定文字列を含むパスだけ抜き出す
+		findpos = replaceStr.Find(str);
 		if (findpos != -1)
 		{
-			TRACE("GetOpenrtmPath : string : %s\n", string);
 			//GUIでは複数のパスは改行表示させる
-			outForGUI = outForGUI + string + "\n";
+			outForGUI = outForGUI + replaceStr + "\n";
 			//レジストリ書き戻し用は%%変数利用、;で区切る
-			outForReg = outForReg + substr + ";";
+			outForReg = outForReg + orgStr + ";";
 
 		}else{
 			//OpenRTM-aist以外のパスはotherPathに保存しておき
 			//レジストリへの書き込み時に合わせて書き戻す
-			otherPath = otherPath + substr + ";";
+			otherPath = otherPath + orgStr + ";";
 		}
-		substr = Path.Tokenize(";", pos);
+		orgStr = target.Tokenize(";", pos);
 	}
-	TRACE("GetOpenrtmPath : otherPath : %s\n", otherPath);
+	TRACE("FindStringFromTargetPath : otherPath : %s\n", otherPath);
 }
 
 ////////////////////////////////////////////////////////
@@ -612,7 +411,7 @@ bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 	//この状態かどうかをチェックする
 
 	//%RTM_ROOT%bin\%RTM_VC_VERSION%のパスを生成
-	binPath.Format("%sbin\\%s", m_RtmRoot, m_VcVersion);
+	binPath.Format("%sbin\\%s", LPCTSTR(m_RtmRoot), LPCTSTR(m_VcVersion));
 
 	//指定のパスに含まれるProgram Filesを切り替える
 	//"Program Files (x86)" -> "Program Files"
@@ -629,6 +428,7 @@ bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 	findpos = Path.Find(binPath);
 	if (findpos != -1)
 	{
+		TRACE("PathDoubleDefinitionCheck : OpenRTM-aistの32bit/64bitの両方のパスが存在する\n");
 		ret = true;
 	}
 	return ret;
@@ -642,6 +442,7 @@ bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 ////////////////////////////////////////////////////////
 void CVCVerChangerDlg::OnBnClickedClose()
 {
+	TRACE("OnBnClickedClose : 終了ボタン処理\n");
 	delete [] m_VSInfo;
 	delete [] m_archInfo;
 	m_VSInfo = NULL;
@@ -659,9 +460,10 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 {
 	CString Msg1, Msg2, Msg3, input;
 	int i;
+	bool ret;
 
-	TRACE("%s OnBnClickedUpdate : 更新ボタン処理\n", GetTime());
-	m_StatusMsg = "処理中...";
+	TRACE("OnBnClickedUpdate : 更新ボタン処理\n");
+	m_StatusMsg = "処理中・・・";
 	UpdateData(FALSE);
 
 	GetDlgItem(IDC_VS_VER)->GetWindowTextA(input);
@@ -675,25 +477,33 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 	}
 	TRACE("OnBnClickedUpdate : Combo Boxの入力値 : m_VcVersion : %s\n", m_VcVersion);
 
-	RegOpen();
+	m_RegistryUtil.RegOpen();
 
 	//レジストリエントリ　書き込み
-	WriteEnv("RTM_VC_VERSION", REG_SZ, m_VcVersion);
-
-	RegClose();
+	ret = m_RegistryUtil.WriteEnv("RTM_VC_VERSION", REG_SZ, m_VcVersion);	
+	if (!ret)
+	{
+		RegistryEntryErr("RTM_VC_VERSIN", "Write");
+		m_RegistryUtil.RegClose();
+		return;
+	}
 
 	//WM_SETTINGCHANGE
 	SettingChange();
 
-	//Sleep(300);
-
 	//書き換え後のレジストリを読み込む
-	//OnBnClickedCheck();
-	RegistryReadProc();
-	  
+	ret = RegistryReadProc();
+	if (!ret)
+	{
+		m_RegistryUtil.RegClose();
+		return;
+	}
+
+	m_RegistryUtil.RegClose();
+
 	Msg1 = "更新後の確認完了。OMNI_ROOT, PATHに含まれるRTM_VC_VERSIONの値が「 ";
 	Msg2 = " 」になりました。";
-	Msg3.Format("%s%s%s", Msg1, m_VcVersion, Msg2);
+	Msg3.Format("%s%s%s", LPCTSTR(Msg1), LPCTSTR(m_VcVersion), LPCTSTR(Msg2));
 	m_StatusMsg = Msg3;
   
 	UpdateData(FALSE);
@@ -727,6 +537,7 @@ HBRUSH CVCVerChangerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 void CVCVerChangerDlg::SettingChange()
 {
 	DWORD dwReturnValue;
+	TRACE("SettingChange : WM_SETTINGCHANGEメッセージ送信\n");
 	LRESULT Ret = SendMessageTimeout(
 		HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)("Environment"),
 		SMTO_ABORTIFHUNG, 5000, &dwReturnValue);
@@ -734,19 +545,6 @@ void CVCVerChangerDlg::SettingChange()
 	{
 		TRACE("SettingChange error. (%d)\n", Ret);
 	}
-}
-
-CString CVCVerChangerDlg::GetTime()
-{
-	CString time;
-	SYSTEMTIME systime;
-	GetSystemTime(&systime);
-	time.Format("%u%u%u_%u%u%u.%u",
-		systime.wYear, systime.wMonth, systime.wDay,
-		systime.wHour, systime.wMinute, systime.wSecond,
-		systime.wMilliseconds);
-
-	return time;
 }
 
 ////////////////////////////////////////////////////////
@@ -763,7 +561,7 @@ void CVCVerChangerDlg::OnClickedArchChange()
 	bool ret;
 
 	TRACE("OnClickedArchChange : 切替ボタン処理\n");
-	m_StatusMsg = "処理中...";
+	m_StatusMsg = "処理中・・・";
 	UpdateData(FALSE);
 	GetDlgItem(IDC_ARCH)->GetWindowTextA(input);
 	TRACE("OnClickedArchChange : Combo Boxの入力値 : %s\n", input);
@@ -782,55 +580,97 @@ void CVCVerChangerDlg::OnClickedArchChange()
 	{
 		m_RtmPathForReg = DeleteUnnecessaryPath(
 					m_RtmPathForReg, ";", &m_archInfo[i]);
-		m_32b64bDualDefineFlg = false;
 	}
 	
 	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA("");
 
-	RegOpen();
+	m_RegistryUtil.RegOpen();
 
-	ret = ChangeProgramFilesPath(m_RtmBase, &m_archInfo[i], outpath);
-	if (ret)
+	//レジストリ更新処理
+	ret = RegistryWriteProc(m_archInfo[i].pFilePath);
+	if (!ret)
 	{
-		//レジストリの書換えが必要
-		WriteEnv("RTM_BASE", REG_SZ, outpath);
-
-		ChangeProgramFilesPath(m_RtmRoot, &m_archInfo[i], outpath);
-		WriteEnv("RTM_ROOT", REG_SZ, outpath);
-	
-		ChangeProgramFilesPath(m_RtmJavaRoot, &m_archInfo[i], outpath);
-		WriteEnv("RTM_JAVA_ROOT", REG_SZ, outpath);
-
-		ChangeProgramFilesPath(m_OmniRootForReg, &m_archInfo[i], outpath);
-		WriteEnv("OMNI_ROOT", REG_EXPAND_SZ, outpath);
-
-		ChangeProgramFilesPath(m_OpencvDir, &m_archInfo[i], outpath);
-		WriteEnv("OpenCV_DIR", REG_SZ, outpath);
-
-		ChangeProgramFilesPath(m_OpenrtmDir, &m_archInfo[i], outpath);
-		WriteEnv("OpenRTM_DIR", REG_SZ, outpath);
+		m_RegistryUtil.RegClose();
+		return;
 	}
-
-	ChangeProgramFilesPath(m_RtmPathForReg, &m_archInfo[i], outpath);
-	str = m_otherPath + outpath;
-	TRACE("OnClickedArchChange : str :%s\n", str);
-	WriteEnv("Path", REG_EXPAND_SZ, str);
-
-	RegClose();
-
+	
 	//WM_SETTINGCHANGE
 	SettingChange();
 
 	//書き換え後のレジストリを読み込む
-	RegistryReadProc();
+	ret = RegistryReadProc();
+	if (!ret)
+	{
+		m_RegistryUtil.RegClose();
+		return;
+	}
+
+	m_RegistryUtil.RegClose();
 
 	Msg1 = "切替後の確認完了。「 ";
 	Msg2 = " 」用の設定になりました。";
-	Msg3.Format("%s%s%s", Msg1, input, Msg2);
+	Msg3.Format("%s%s%s", LPCTSTR(Msg1), LPCTSTR(input), LPCTSTR(Msg2));
 	m_StatusMsg = Msg3;
   
 	UpdateData(FALSE);
 }
+
+
+////////////////////////////////////////////////////////
+// 関数名：CorrectSystemEnvValue
+// 機能　：システム環境変数の値を実際のインストール状況
+//         合った設定になるように正す。
+//         OpenRTM-aistの32bit/64bit版の切替により
+//         環境変数の設定が現状と合っていない場合へ
+//         対応する。
+// 引数　：無し
+// 戻り値：OpenRTM-aistのインストール状態  
+//         true:インストールしている
+//         false:アンインストールされている
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::CorrectSystemEnvValue()
+{
+	CString archPath, outpath;
+	int findpos = 0;
+	bool result = true;
+	CString target = m_OpenrtmDir;
+
+	//現在の設定と異なるアーキテクチャのパスを取得
+	findpos = target.Find(m_x86Path);
+	if (findpos != -1)
+	{
+		//パスは32bit設定になっている
+		//64bit版のパスを取得する
+		ChangeProgramFilesPath(m_OpenrtmDir, m_x64Path, outpath);
+		archPath = m_x64Path;
+	}else{
+		//パスは64bit設定になっている
+		//32bit版のパスを取得する
+		ChangeProgramFilesPath(m_OpenrtmDir, m_x86Path, outpath);
+		archPath = m_x86Path;
+	}
+
+	//ディレクトリ存在を確認する
+	if(::PathFileExistsA(outpath) && ::PathIsDirectoryA(outpath))
+	{
+		//存在しているのでパスを書き換える
+		TRACE("CorrectSystemEnvValue : システム環境変数を正しい設定で書換え\n");
+		RegistryWriteProc(archPath);
+	}else{
+		//OpenRTM-aistはアンインストールされていると判断
+		//レジストリから削除する
+		TRACE("CorrectSystemEnvValue : OpenRTM-aistはアンインストールされている\n");
+		RegistryDeleteProc("ALL");
+		CleanResult();
+		result = false;
+	}
+
+	//WM_SETTINGCHANGE
+	SettingChange();
+
+	return result;
+}
+
 
 ////////////////////////////////////////////////////////
 // 関数名：InstalledArchCheck
@@ -848,31 +688,28 @@ int CVCVerChangerDlg::InstalledArchCheck()
 	int findpos = 0;
 	int ret = -1;
 
-	//OpenRTM_DIRのディレクトリ存在確認で
-	//インストール状態を判断する
 	str = m_OpenrtmDir;
-	TRACE("str : %s\n", str);
 	//32bit版確認
 	findpos = str.Find(m_x86Path);
 	if (findpos != -1)
 	{
-		//パスは32bit設定になっている		
+		//パスは32bit設定になっている
+		TRACE("InstalledArchCheck : パスは32bit設定\n");
 		tmp = str;
 		tmp.Replace(m_x86Path, m_x64Path);
-		TRACE("tmp : %s\n", tmp);
 		if (::PathFileExistsA(tmp) && ::PathIsDirectoryA(tmp))
 		{
-			//64bit版が存在している
+			TRACE("InstalledArchCheck : パスは32bit設定で64bit版もインストール済み\n");
 			ret = 0;
 		}						
 	}else{
 		//パスは64bit設定になっている
+		TRACE("InstalledArchCheck : パスは64bit設定\n");
 		tmp = str;
 		tmp.Replace(m_x64Path, m_x86Path);
-		TRACE("tmp : %s\n", tmp);
 		if (::PathFileExistsA(tmp) && ::PathIsDirectoryA(tmp))
 		{
-			//32bit版が存在している
+			TRACE("InstalledArchCheck : パスは64bit設定で32bit版もインストール済み\n");
 			ret = 1;
 		}
 	}
@@ -885,22 +722,22 @@ int CVCVerChangerDlg::InstalledArchCheck()
 //         "Program Files (x86)" -> "Program Files"
 //         "Program Files" -> "Program Files (x86)"
 // 引数　：CString path     :対象のパス
-//         ARCH_INFO* info  :指定ARCH情報
+//         CString toDir    :このディレクトリへ変換する
 //         CString& outPath :変換後のパス
-// 戻り値：true :変換必要　false:変換不要
+// 戻り値：true :変換あり　false:変換なし
 ////////////////////////////////////////////////////////
 bool CVCVerChangerDlg::ChangeProgramFilesPath(CString path, 
-							ARCH_INFO* info, CString& outPath)
+							CString toDir, CString& outPath)
 {
 	outPath = path;
-	CString newPath = info->pFilePath;
 	int findpos = 0;
 	bool ret = false;
 
-	findpos = path.Find(newPath+"\\");
-	if (findpos==-1 && newPath==m_x86Path)
+	findpos = path.Find(toDir+"\\");
+	if (findpos==-1 && toDir==m_x86Path)
 	{
 		//64bit->32bit
+		TRACE("ChangeProgramFilesPath : 64bit->32bitへ切替\n");
 		outPath.Replace(m_x64Path, m_x86Path);
 		
 		//%OpenCV_DIR%が含まれているか？
@@ -912,9 +749,10 @@ bool CVCVerChangerDlg::ChangeProgramFilesPath(CString path,
 		}
 		ret = true;
 	}
-	if (findpos==-1 && newPath==m_x64Path)
+	if (findpos==-1 && toDir==m_x64Path)
 	{
 		//32bit->64bit
+		TRACE("ChangeProgramFilesPath : 32bit->64bitへ切替\n");
 		outPath.Replace(m_x86Path, m_x64Path);
 
 		//%OpenCV_DIR%が含まれているか？
@@ -947,11 +785,12 @@ CString CVCVerChangerDlg::DeleteUnnecessaryPath(
    int findpos = 0;
    CString outPath = "";
 
+   TRACE("DeleteUnnecessaryPath : 指定以外のパスを除外する\n");
    //ここへ渡されるpathは、レジストリへ書き戻すもので
    //%変数が展開されていない
    TRACE("DeleteUnnecessaryPath : in(%s)\n", path);
 
-   basisPath.Format("%s\\OpenRTM-aist", info->pFilePath);
+   basisPath.Format("%s\\OpenRTM-aist", LPCTSTR(info->pFilePath));
    cvarch = "%OpenCV_DIR%" + info->CV_ARCH;
 
    //受け取ったpathを指定の区切り文字で分割する
@@ -983,6 +822,375 @@ CString CVCVerChangerDlg::DeleteUnnecessaryPath(
 }
 
 ////////////////////////////////////////////////////////
+// 関数名：RegistryReadProc
+// 機能　：レジストリエントリ読込処理
+// 引数　：無し
+// 戻り値：true:正常終了　false:エントリ未定義
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::RegistryReadProc()
+{
+	CString EnvValue = "";
+	CString path, str;
+	CString outForGUI, outForReg, otherPath;
+	int i;
+
+	TRACE("RegistryReadProc: レジストリエントリ読込処理\n");
+
+	EnvValue = m_RegistryUtil.ReadEnv("RTM_VC_VERSION");
+	if (EnvValue == "")
+	{
+		RegistryEntryReadErr();
+		return false;
+	}
+	m_VcVersion = EnvValue;
+	for(i=0; i<m_VSVer.GetCount(); i++)
+	{
+		if(m_VcVersion == m_VSInfo[i].Internal_Ver)
+		{
+			m_VSVer.SetCurSel(i);
+			break;
+		}
+	}
+
+	EnvValue = m_RegistryUtil.ReadEnv("RTM_BASE");
+	if (EnvValue == "")
+	{
+		//レジストリから削除する
+		RegistryDeleteProc("RTM_VC_VERSION");
+		CleanResult();
+		RegistryEntryReadErr();
+		return false;
+	}
+	m_RtmBase = EnvValue;
+
+	EnvValue = m_RegistryUtil.ReadEnv("RTM_ROOT");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("RTM_ROOT", "Read");
+		return false;
+	}
+	m_RtmRoot = EnvValue;
+
+	EnvValue = m_RegistryUtil.ReadEnv("RTM_JAVA_ROOT");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("RTM_JAVA_ROOT", "Read");
+		return false;
+	}
+	m_RtmJavaRoot = EnvValue;
+
+	EnvValue = m_RegistryUtil.ReadEnv("OMNI_ROOT");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("OMNI_ROOT", "Read");
+		return false;
+	}
+	//レジストリ書き戻し用
+	m_OmniRootForReg = EnvValue; 
+	//GUI表示用は%OMNI_ROOT%を展開させる
+	m_OmniRoot = ReplaceEnv(EnvValue);
+
+	EnvValue = m_RegistryUtil.ReadEnv("OpenCV_DIR");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("OpenCV_DIR", "Read");
+		return false;
+	}
+	m_OpencvDir = EnvValue;
+
+	EnvValue = m_RegistryUtil.ReadEnv("OpenRTM_DIR");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("OpenRTM_DIR", "Read");
+		return false;
+	}
+	m_OpenrtmDir = EnvValue;
+
+	EnvValue = m_RegistryUtil.ReadEnv("PATH");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("PATH", "Read");
+		return false;
+	}
+
+	//PATHからOpenRTM-aistが設定したパスを切り出す	
+	outForGUI = outForReg = otherPath = "";
+	FindStringFromTargetPath("OpenRTM-aist", EnvValue,
+						outForGUI, outForReg, otherPath); 
+	m_RtmPath = outForGUI;
+	m_RtmPathForReg = outForReg;
+	m_otherPath = otherPath;
+
+	return true;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：ReplaceEnv
+// 機能　：システム環境変数値に含まれる%変数%を展開する
+//    RegQueryValueExはレジストリ値に含まれる%%変数を
+//    展開してくれないため、展開させる
+// 引数　：CString Path　：展開前のパス
+// 戻り値：展開後のパス
+////////////////////////////////////////////////////////
+CString  CVCVerChangerDlg::ReplaceEnv(CString Path)
+{
+	CString str1, str2, str3, src;
+    int VER_len, OMNI_len, CV_len; 
+    
+    CString tmp = "%RTM_VC_VERSION%";
+	VER_len = tmp.GetLength();
+	tmp = "%OMNI_ROOT%";
+	OMNI_len = tmp.GetLength();
+	tmp = "%OpenCV_DIR%";
+	CV_len = tmp.GetLength();
+
+	src = Path;
+	int ptr = src.Find("%RTM_VC_VERSION%");
+	if (ptr != -1)
+	{
+		str1 = src.Mid(0, ptr);
+		str2 = src.Mid(ptr + VER_len);
+		str3.Format("%s%s%s", LPCTSTR(str1), 
+						LPCTSTR(m_VcVersion), LPCTSTR(str2));
+		src = str3;
+		TRACE("ReplaceEnv : %s\n", src);
+	}
+
+	ptr = src.Find("%OMNI_ROOT%");
+	if (ptr != -1)
+	{
+		str1 = src.Mid(0, ptr);
+		str2 = src.Mid(ptr + OMNI_len);
+		str3.Format("%s%s%s", LPCTSTR(str1), 
+						LPCTSTR(m_OmniRoot), LPCTSTR(str2));
+		src = str3;
+		TRACE("ReplaceEnv : %s\n", src);
+	}
+
+	ptr = src.Find("%OpenCV_DIR%");
+	if (ptr != -1)
+	{
+		str1 = src.Mid(0, ptr);
+		str2 = src.Mid(ptr + CV_len);
+		str3.Format("%s%s%s", LPCTSTR(str1), 
+						LPCTSTR(m_OpencvDir), LPCTSTR(str2));
+		src = str3;
+		TRACE("ReplaceEnv : %s\n", src);
+	}	
+	return src;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：RegistryWriteProc
+// 機能　：レジストリ更新処理
+// 引数　：無し
+// 戻り値：無し  
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::RegistryWriteProc(CString toDir)
+{
+	CString outpath, allpath;
+	bool ret, ret1;
+
+	ret = ChangeProgramFilesPath(m_RtmBase, toDir, outpath);
+	if (ret)
+	{
+		//レジストリの書換えが必要
+		TRACE("RegistryWriteProc : レジストリ更新処理\n");
+		ret1 = m_RegistryUtil.WriteEnv("RTM_BASE", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("RTM_BASE", "Write");
+			return false;
+		}
+
+		ChangeProgramFilesPath(m_RtmRoot, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("RTM_ROOT", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("RTM_ROOT", "Write");
+			return false;
+		}
+	
+		ChangeProgramFilesPath(m_RtmJavaRoot, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("RTM_JAVA_ROOT", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("RTM_JAVA_ROOT", "Write");
+			return false;
+		}
+
+		ChangeProgramFilesPath(m_OmniRootForReg, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("OMNI_ROOT", REG_EXPAND_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("OMNI_ROOT", "Write");
+			return false;
+		}
+
+		ChangeProgramFilesPath(m_OpencvDir, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("OpenCV_DIR", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("OpenCV_DIR", "Write");
+			return false;
+		}
+
+		ChangeProgramFilesPath(m_OpenrtmDir, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("OpenRTM_DIR", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("OpenRTM_DIR", "Write");
+			return false;
+		}
+	}
+
+	ret = ChangeProgramFilesPath(m_RtmPathForReg, toDir, outpath);
+	if (ret || m_32b64bDualDefineFlg)
+	{
+		TRACE("RegistryWriteProc : PATH更新\n");
+		allpath = m_otherPath + outpath;
+		ret1 = m_RegistryUtil.WriteEnv("PATH", REG_EXPAND_SZ, allpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("PATH", "Write");
+			return false;
+		}
+		m_32b64bDualDefineFlg = false;
+	}
+
+	return true;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：RegistryDeleteProc
+// 機能　：レジストリエントリ削除処理
+// 引数　：CString target :対象エントリ
+//                         ALLを指定すれば全削除
+// 戻り値：true:正常終了　false:エントリ未定義
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::RegistryDeleteProc(CString target)
+{
+	CString EnvValue = "";
+	CString outForGUI, outForReg, otherPath;
+	bool ret;
+
+    TRACE("RegistryDeleteProc : レジストリエントリ削除処理\n");
+    
+    ret = m_RegistryUtil.DeleteEnv("RTM_VC_VERSION");
+	if (!ret)
+	{
+		RegistryEntryErr("RTM_VC_VERSION", "Delete");
+		return false;
+	}
+
+	//アンインストールしても残ってしまうシステム環境変数削除
+	//本ツールで値を書換えたものが削除されず残ってしまう
+	//OpenRTM-aistの32/64bit版のいずれかのみインストールしている
+	//場合は、RTM_VC_VERSIONが残る可能性がある
+	//32/64bit版の両方をインストールしている場合、本ツールで切替を
+	//実行すると全ての環境変数が残る可能性があるので、引数にALLを
+	//指定して実行している
+
+	if (target == "ALL")
+	{
+		ret = m_RegistryUtil.DeleteEnv("RTM_BASE");
+		if (!ret)
+		{
+			RegistryEntryErr("RTM_BASE", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("RTM_ROOT");
+		if (!ret)
+		{
+			RegistryEntryErr("RTM_ROOT", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("RTM_JAVA_ROOT");
+		if (!ret)
+		{
+			RegistryEntryErr("RTM_JAVA_ROOT", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("OMNI_ROOT");
+		if (!ret)
+		{
+			RegistryEntryErr("OMNI_ROOT", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("OpenCV_DIR");
+		if (!ret)
+		{
+			RegistryEntryErr("OpenCV_DIR", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("OpenRTM_DIR");
+		if (!ret)
+		{
+			RegistryEntryErr("OpenRTM_DIR", "Delete");
+			return false;
+		}
+
+		//PATHからOpenRTM-aistを抜き出した残りを書き戻す
+		EnvValue = m_RegistryUtil.ReadEnv("PATH");
+		if (EnvValue == "")
+		{
+			RegistryEntryErr("PATH", "Read");
+			return false;
+		}
+		//PATHへOpenRTM-aistが設定したパスを切り出す	
+		outForGUI = outForReg = otherPath = "";
+		FindStringFromTargetPath("OpenRTM-aist", EnvValue,
+							outForGUI, outForReg, otherPath);
+		if (outForReg != "")
+		{
+			//PATHの中にOpenRTM-aistのパスが残っているので、これを
+			//除いたものを書き戻す
+			ret = m_RegistryUtil.WriteEnv("PATH", REG_EXPAND_SZ, otherPath);
+			if (!ret)
+			{
+				RegistryEntryErr("PATH", "Write");
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：RegistryEntryReadErr
+// 機能　：レジストリエントリ読み込みエラー時の処理
+//         OpenRTM-aistがインストールされていない可能性
+//         が高い場合に表示するメッセージ
+// 引数　：無し
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::RegistryEntryReadErr()
+{
+	CString str;
+
+	TRACE("RegistryEntryReadErr : OpenRTM-aistインストール確認メッセージ表示\n");
+	str = "OpenRTM-aist 1.1.2版以降のバージョンがインストールされているか、確認して下さい。";
+	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
+	UpdateData(FALSE);
+}
+
+////////////////////////////////////////////////////////
+// 関数名：RegistryEntryErr
+// 機能　：レジストリエントリRead/Writeエラー時の処理
+// 引数　：LPCTSTR EnvName　：エントリ名
+//         LPCTSTR proc :処理
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::RegistryEntryErr(LPCTSTR EnvName, LPCTSTR proc)
+{
+	CString str;
+
+	str.Format("%s : %s エラー", EnvName, proc);
+	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
+	UpdateData(FALSE);
+}
+
+////////////////////////////////////////////////////////
 // 関数名：OnDestroy
 // 機能　：ダイアログを閉じる際の処理
 // 引数　：無し
@@ -992,8 +1200,29 @@ void CVCVerChangerDlg::OnDestroy()
 {
 	CDialogEx::OnDestroy();
 
+	TRACE("OnDestroy\n");
 	delete [] m_VSInfo;
 	delete [] m_archInfo;
 	m_VSInfo = NULL;
 	m_archInfo = NULL;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：CleanResult
+// 機能　：ダイアログのResult表示初期化
+// 引数　：無し
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::CleanResult()
+{
+	TRACE("CleanResult : ダイアログのResult表示初期化\n");
+	m_VcVersion = "";
+	m_RtmBase = "";
+	m_RtmRoot = "";
+	m_RtmJavaRoot = "";
+	m_OmniRoot = "";
+	m_OpencvDir = "";
+	m_OpenrtmDir = "";
+	m_RtmPath = "";
+	UpdateData(FALSE);
 }
