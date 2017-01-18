@@ -135,6 +135,7 @@ BOOL CVCVerChangerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 小さいアイコンの設定
 
 	// TODO: 初期化をここに追加します。
+	InitMultilingual();
 	Init();
 
 	return TRUE;  // フォーカスをコントロールに設定した場合を除き、TRUE を返します。
@@ -190,6 +191,39 @@ HCURSOR CVCVerChangerDlg::OnQueryDragIcon()
 }
 
 ////////////////////////////////////////////////////////
+// 関数名：InitMultilingual
+// 機能　：PCの言語設定でボタン表示を初期化
+// 機能　：言語設定に合ったString Tableの設定を使う
+//   日本語と英語の設定のどちらを使うかは自動で判断される         
+// 引数　：無し
+// 戻り値：無し
+////////////////////////////////////////////////////////
+void CVCVerChangerDlg::InitMultilingual()
+{
+	CString strText;
+	CButton *button;
+
+	strText.LoadString(IDS_BTN_UPDATE); 
+	button = (CButton*)GetDlgItem(IDC_UPDATE);
+	button->SetWindowText(strText);
+
+	strText.LoadString(IDS_BTN_CHANGE); 
+	button = (CButton*)GetDlgItem(IDC_ARCH_CHANGE);
+	button->SetWindowText(strText);
+
+	strText.LoadString(IDS_BTN_CHECK);
+	button = (CButton*)GetDlgItem(ID_CHECK);
+	button->SetWindowText(strText);
+
+	strText.LoadString(IDS_BTN_END);
+	button = (CButton*)GetDlgItem(IDCLOSE);
+	button->SetWindowText(strText);
+
+	strText.LoadString(IDS_DLG_TITLE);
+	SetWindowText(strText);
+}
+
+////////////////////////////////////////////////////////
 // 関数名：Init
 // 機能　：初期処理
 // 引数　：無し
@@ -198,6 +232,7 @@ HCURSOR CVCVerChangerDlg::OnQueryDragIcon()
 void CVCVerChangerDlg::Init()
 {
 	int i;
+	CString strText;
 
 	GetDlgItem(IDC_UPDATE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_VS_VER)->EnableWindow(FALSE);
@@ -252,7 +287,8 @@ void CVCVerChangerDlg::Init()
 	//true:両方のパスが存在する　flase:存在しない
 	m_32b64bDualDefineFlg = false;
 
-	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA("確認ボタンを押して下さい。");
+	strText.LoadString(IDS_WARNING_1);
+	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(strText);
 }
 
 
@@ -286,7 +322,7 @@ void CVCVerChangerDlg::OnBnClickedCheck()
 	if(bRet)
 	{
 		TRACE("OnBnClickedCheck : OpenRTM-aistのPATHが32bit/64bit両方定義されている\n");
-		str = "OpenRTM-aistのPATHが32bit/64bit両方定義されています。切替ボタンでどちらかに設定して下さい。";
+		str.LoadString(IDS_WARNING_2);
 		GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
 		m_32b64bDualDefineFlg = true;
 	}
@@ -463,7 +499,7 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 	bool ret;
 
 	TRACE("OnBnClickedUpdate : 更新ボタン処理\n");
-	m_StatusMsg = "処理中・・・";
+	m_StatusMsg.LoadString(IDS_STATUS_1);
 	UpdateData(FALSE);
 
 	GetDlgItem(IDC_VS_VER)->GetWindowTextA(input);
@@ -501,15 +537,19 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 
 	m_RegistryUtil.RegClose();
 
-	Msg1 = "更新後の確認完了。OMNI_ROOT, PATHに含まれるRTM_VC_VERSIONの値が「 ";
-	Msg2 = " 」になりました。";
+	Msg1.LoadString(IDS_STATUS_2);
+	Msg2.LoadString(IDS_STATUS_3);
 	Msg3.Format("%s%s%s", LPCTSTR(Msg1), LPCTSTR(m_VcVersion), LPCTSTR(Msg2));
 	m_StatusMsg = Msg3;
   
 	UpdateData(FALSE);
 }
 
-
+////////////////////////////////////////////////////////
+// 関数名：OnCtlColor
+// 機能　：スタティックテキストの文字色を赤にするため
+// 　　　　本関数をオーバーライドする
+////////////////////////////////////////////////////////
 HBRUSH CVCVerChangerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
@@ -561,7 +601,7 @@ void CVCVerChangerDlg::OnClickedArchChange()
 	bool ret;
 
 	TRACE("OnClickedArchChange : 切替ボタン処理\n");
-	m_StatusMsg = "処理中・・・";
+	m_StatusMsg.LoadString(IDS_STATUS_1);
 	UpdateData(FALSE);
 	GetDlgItem(IDC_ARCH)->GetWindowTextA(input);
 	TRACE("OnClickedArchChange : Combo Boxの入力値 : %s\n", input);
@@ -607,8 +647,8 @@ void CVCVerChangerDlg::OnClickedArchChange()
 
 	m_RegistryUtil.RegClose();
 
-	Msg1 = "切替後の確認完了。「 ";
-	Msg2 = " 」用の設定になりました。";
+	Msg1.LoadString(IDS_STATUS_4);
+	Msg2.LoadString(IDS_STATUS_5);
 	Msg3.Format("%s%s%s", LPCTSTR(Msg1), LPCTSTR(input), LPCTSTR(Msg2));
 	m_StatusMsg = Msg3;
   
@@ -1169,7 +1209,7 @@ void CVCVerChangerDlg::RegistryEntryReadErr()
 	CString str;
 
 	TRACE("RegistryEntryReadErr : OpenRTM-aistインストール確認メッセージ表示\n");
-	str = "OpenRTM-aist 1.1.2版以降のバージョンがインストールされているか、確認して下さい。";
+	str.LoadStringA(IDS_WARNING_3);
 	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
 	UpdateData(FALSE);
 }
@@ -1185,7 +1225,7 @@ void CVCVerChangerDlg::RegistryEntryErr(LPCTSTR EnvName, LPCTSTR proc)
 {
 	CString str;
 
-	str.Format("%s : %s エラー", EnvName, proc);
+	str.Format("%s : %s Error", EnvName, proc);
 	GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
 	UpdateData(FALSE);
 }

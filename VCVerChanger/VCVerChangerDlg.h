@@ -53,6 +53,7 @@ public:
 	afx_msg void OnDestroy();
 
 private:
+	void	InitMultilingual();
 	void	Init();
 	bool	RegistryReadProc(); //レジストリ・エントリ読込処理
 	bool	RegistryWriteProc(CString toDir); //レジストリ・エントリ書き込み処理
