@@ -318,14 +318,20 @@ void CVCVerChangerDlg::OnBnClickedCheck()
 	}
 
 	//PATHにOpenRTM-aistの32bit/64bitの両定義が存在するか？
-	bRet = PathDoubleDefinitionCheck(m_RtmPath);
-	if(bRet)
+	ret = PathDoubleDefinitionCheck(m_RtmPath);
+	if (ret == 0)
 	{
 		TRACE("OnBnClickedCheck : OpenRTM-aistのPATHが32bit/64bit両方定義されている\n");
 		str.LoadString(IDS_WARNING_2);
 		GetDlgItem(IDC_WARNING_MSG)->SetWindowTextA(str);
 		m_32b64bDualDefineFlg = true;
 	}
+    if (ret == -2)
+    {
+        //PATHに32bit/64bit両方定義されていて、少なくとも一方はアンインストールされている
+        bRet = OrganizePath();
+        if(!bRet) return;
+    }
 
 	//本ツールを一度実行すると、PATHの定義は整理済みで
 	//一方のバージョンしか検出できなくなる
@@ -431,13 +437,16 @@ void CVCVerChangerDlg::FindStringFromTargetPath(
 // 機能　：PATHにOpenRTM-aistの32bit/64bitの両定義が存在
 //         しているかチェックする
 // 引数　：CString Path　：PATHの値
-// 戻り値：true: 32/64bitの両定義がある　　false:ない
+// 戻り値：0: 32/64bitの両定義がある
+//        -1: 一方の定義のみ
+// 　　　 -2: 両定義が残っているがアンインストールされている
 ////////////////////////////////////////////////////////
-bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
+int CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 {
-	bool ret = false;
+	int ret = -1;
 	int findpos = 0;
 	CString binPath;
+    int existCnt = 0;
 
 	//32bit/64bitの両バージョンをインストール後、
 	//システム環境変数をいじっていなければ、PATHに下記の
@@ -448,6 +457,11 @@ bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 
 	//%RTM_ROOT%bin\%RTM_VC_VERSION%のパスを生成
 	binPath.Format("%sbin\\%s", LPCTSTR(m_RtmRoot), LPCTSTR(m_VcVersion));
+    //パスの存在確認
+	if (::PathFileExistsA(binPath) && ::PathIsDirectoryA(binPath))
+    {
+        existCnt++;
+    }
 
 	//指定のパスに含まれるProgram Filesを切り替える
 	//"Program Files (x86)" -> "Program Files"
@@ -459,13 +473,24 @@ bool CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 	}else{
 		binPath.Replace(m_x64Path, m_x86Path);
 	}
+    //パスの存在確認
+	if (::PathFileExistsA(binPath) && ::PathIsDirectoryA(binPath))
+    {
+        existCnt++;
+    }
 
 	//binPathはPATHに定義されているか？
 	findpos = Path.Find(binPath);
-	if (findpos != -1)
+	if (findpos!=-1)
 	{
-		TRACE("PathDoubleDefinitionCheck : OpenRTM-aistの32bit/64bitの両方のパスが存在する\n");
-		ret = true;
+        if (existCnt==2)
+        {
+            TRACE("PathDoubleDefinitionCheck : OpenRTM-aistの32bit/64bitの両方のパスが存在する\n");
+		    ret = 0;
+        }else{
+            TRACE("PathDoubleDefinitionCheck : OpenRTM-aistの32bit/64bitの両方のパスが存在するが、どちらかはアンインストールされている\n");
+		    ret = -2;
+        }
 	}
 	return ret;
 }
@@ -1265,4 +1290,64 @@ void CVCVerChangerDlg::CleanResult()
 	m_OpenrtmDir = "";
 	m_RtmPath = "";
 	UpdateData(FALSE);
+}
+
+////////////////////////////////////////////////////////
+// 関数名：OrganizePath
+// 機能　：PATHに含まれる不正パスを削除し整理する
+// 引数　：無し
+// 戻り値：true:正常　false:異常
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::OrganizePath()
+{
+    CString arch, allpath;
+    int i;
+    bool ret;
+    
+    //アンインストールしているのに残ってしまっているパスを削除する
+    //OpenRTM-aistの32/64bit版を両方インストールし、本ツールで不要な
+    //パスを整理する以前に一方をアンインストールすると、PATHの設定が
+    //残る場合を確認している
+    
+    //この不正なパスを削除する
+    //判断にRTM_BASEの設定を使い、同じアーキテクチャのパスのみ残し
+    //レジストリを書き換える
+    if (m_RtmBase.Find(m_x86Path) != -1)
+    {
+        arch = "x86";
+    }else{
+        arch = "x64";
+    }
+    
+	for (i=0; i<m_arch.GetCount(); i++)
+	{
+		if (arch == m_archInfo[i].CV_ARCH)
+		{
+			break;
+		}
+	}
+    
+	TRACE("OrganizePath : PATHに含まれている%s以外のパスを削除する\n", m_archInfo[i].BitType);
+	m_RtmPathForReg = DeleteUnnecessaryPath(
+			m_RtmPathForReg, ";", &m_archInfo[i]);
+    allpath = m_otherPath + m_RtmPathForReg;
+	ret = m_RegistryUtil.WriteEnv("PATH", REG_EXPAND_SZ, allpath);
+	if (!ret)
+	{
+		RegistryEntryErr("PATH", "Write");
+		return false;
+	}
+    
+    //WM_SETTINGCHANGE
+	SettingChange();
+
+	//書き換え後のレジストリを読み込む
+	ret = RegistryReadProc();
+	if (!ret)
+	{
+		m_RegistryUtil.RegClose();
+		return false;
+	}
+
+    return true;
 }

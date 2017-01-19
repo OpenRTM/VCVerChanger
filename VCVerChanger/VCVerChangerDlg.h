@@ -80,11 +80,13 @@ private:
 					CString toDir, CString& outPath);
 
 	//PATHにOpenRTM-aistの32bit/64bitの両定義が存在チェック
-	bool	PathDoubleDefinitionCheck(CString Path);
+	int 	PathDoubleDefinitionCheck(CString Path);
 
 	//ARCH_INFO構造体で指定されたタイプ(32bit/64bit)以外のパスを除外する
 	CString	DeleteUnnecessaryPath(CString path, 
 				CString delimit, ARCH_INFO* info);
+    
+    bool    OrganizePath();
 
 	CString m_VcVersion;
 	CString m_RtmBase;
