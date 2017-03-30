@@ -9,6 +9,11 @@
 @rem  ex. VCVerChanger_x86.msm
 @rem ================================================================
 
+@if "%1" == "" exit/b
+@if "%2" == "" exit/b
+@set SVN_USER=%1
+@set SVN_USER_PASSWD=%2
+
 if not defined INSTALL_VERSION set INSTALL_VERSION=1.2.0
 if not defined REPOSITORY set REPOSITORY=openrtm.org
 if not defined BASE_URL set BASE_URL=http://%REPOSITORY%/pub/Windows/OpenRTM-aist/msi-buildtools/%INSTALL_VERSION%
@@ -28,8 +33,8 @@ set GUIDS_FILE=%PWD%\VCVerChanger_guids.txt
 
 @rem ------------------------------------------------------------
 @rem  downloading common scripts 
-set URL=http://svn.openrtm.org/msi-buildtool/trunk/scripts
-%SHELL%svn co %URL% scripts
+set URL=http://openrtm.org/svn/msi-buildtool/trunk/scripts
+%SHELL%svn co --username %SVN_USER% --password %SVN_USER_PASSWD% %URL% scripts
 
 @rem ------------------------------------------------------------
 @rem  unzip binary files 
