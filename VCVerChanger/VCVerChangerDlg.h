@@ -101,6 +101,7 @@ private:
 	CString m_otherPath;		//OpenRTM-aistà»äOÇÃPATHê›íË
 	CStatic m_WarningMsg;
 	CStatic m_staticArch;
+	CString m_LogPath;
 
 	CRegistryUtil m_RegistryUtil;
 	CString m_StatusMsg;

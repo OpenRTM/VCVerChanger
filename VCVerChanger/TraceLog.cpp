@@ -1,18 +1,18 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name			: TraceLog.cpp
+// Name         : TraceLog.cpp
 // Description	: implementation of the TraceLog class
 // Create Date	: 2016.11.02
-// Author		: Nobu Kawauchi
+// Author       : Nobu Kawauchi
 // Copyright (C) 2016 n-ando AIST All Rights Reserved.
 /////////////////////////////////////////////////////////////////////////////
 #include "StdAfx.h"
 #include "TraceLog.h"
 #include <sys/timeb.h>
 
-#define LOGDIR ".\\Log"
 #define LOG_DEF_FLAG	(CFile::modeCreate | CFile::modeWrite)
 
 static CFile*	m_pCFile;
+static char	m_LogDir[MAX_PATH];
 
 CTraceLog::CTraceLog(void)
 {
@@ -37,22 +37,15 @@ CTraceLog::~CTraceLog(void)
 ////////////////////////////////////////////////////////
 void CTraceLog::LogFileOpen(void)
 {
-	time_t lTime;
-	struct tm pTime;							// 作成時刻
-	CString strFilename = "";
 	char	buf[1024];
+	char	path[MAX_PATH];
 	
-	CreateDirectory((LPCTSTR)LOGDIR, NULL);
+	GetTempPath(MAX_PATH, path);
+	sprintf_s(m_LogDir, "%s%s", path, "VCVerChanger");
+	CreateDirectory(m_LogDir, NULL);
 
-	time( &lTime );								// long 整数として時刻を取得
-	localtime_s( &pTime, &lTime );
+	sprintf_s(buf, "%s\\%s", m_LogDir, "TRACE.log");
 
-	//ログファイル名は、日付＋時間　例）TRACE1012_1753.txt
-	strFilename.Format("TRACE%02d%02d_%02d%02d%02d",
-		pTime.tm_mon+1, pTime.tm_mday,
-		pTime.tm_hour, pTime.tm_min, pTime.tm_sec );
-	sprintf_s(buf, "%s\\%s.%s", LOGDIR, LPCTSTR(strFilename), "log");
-	
 	m_pCFile = new CFile( buf, LOG_DEF_FLAG );
 }
 
