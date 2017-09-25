@@ -244,14 +244,14 @@ void CVCVerChangerDlg::Init()
 	GetDlgItem(IDC_ARCH_CHANGE)->ShowWindow(FALSE);
 
 	VISUAL_STUDIO vc_ver[] = {
-		{"Visual C++ 17", "vc17"},
-		{"Visual C++ 16", "vc16"},
-		{"Visual C++ 15 2017", "vc15"},
-		{"Visual C++ 14 2015", "vc14"},
-		{"Visual C++ 12 2013", "vc12"},
-		{"Visual C++ 11 2012", "vc11"},
-		{"Visual C++ 10 2010", "vc10"},
-		{"Visual C++ 9 2008", "vc9"},
+		{"Visual Studio 17", "vc17"},
+		{"Visual Studio 16", "vc16"},
+		{"Visual Studio 15 2017", "vc141"},
+		{"Visual Studio 14 2015", "vc14"},
+		{"Visual Studio 12 2013", "vc12"},
+		{"Visual Studio 11 2012", "vc11"},
+		{"Visual Studio 10 2010", "vc10"},
+		{"Visual Studio 9 2008", "vc9"},
 	};
 	const int vcNum = sizeof vc_ver / sizeof vc_ver[0];
 
