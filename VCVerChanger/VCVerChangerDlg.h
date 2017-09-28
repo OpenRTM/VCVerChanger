@@ -62,14 +62,14 @@ private:
 	void	RegistryEntryErr(LPCTSTR EnvName, LPCTSTR proc);
 
 	//targetの中から指定文字列を含むパスを抜き出す
-	void	FindStringFromTargetPath(
+	int	FindStringFromTargetPath(
 				CString str,
 				CString target,
 				CString& outForGUI, 
 				CString& outForReg,
 				CString& otherPath);
 	
-	CString ReplaceEnv(CString Path);	//システム環境変数値に含まれる%変数%を展開する
+	bool ReplaceEnv(CString Path, CString& outPath);	//システム環境変数値に含まれる%変数%を展開する
 	void    SettingChange();			//WM_SETTINGCHANGEメッセージ送信
 	int		InstalledArchCheck();		//OpenRTM-aistのアーキテクチャを調べる
 	bool	CorrectSystemEnvValue();	//OpenRTM-aistのインストール状況を調べる
@@ -86,7 +86,10 @@ private:
 	CString	DeleteUnnecessaryPath(CString path, 
 				CString delimit, ARCH_INFO* info);
     
-    bool    OrganizePath();
+	bool	OrganizePath();
+
+	//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
+	bool	ReplaceFromVCxxToRTMVCVERSION(CString path, CString& outPath);
 
 	CString m_VcVersion;
 	CString m_RtmBase;

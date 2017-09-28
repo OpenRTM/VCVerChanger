@@ -10,6 +10,7 @@
 #include <sys/timeb.h>
 
 #define LOG_DEF_FLAG	(CFile::modeCreate | CFile::modeWrite)
+//#define __TEST__
 
 static CFile*	m_pCFile;
 static char	m_LogDir[MAX_PATH];
@@ -38,13 +39,29 @@ CTraceLog::~CTraceLog(void)
 void CTraceLog::LogFileOpen(void)
 {
 	char	buf[1024];
+	CString strFilename;
+
+#ifdef __TEST__
+	time_t lTime;
+	struct tm pTime;							// 作成時刻
+	strFilename = "";
+	sprintf_s(m_LogDir, "%s", "Log");
+	time( &lTime );								// long 整数として時刻を取得
+	localtime_s( &pTime, &lTime );
+
+	//ログファイル名は、日付＋時間　例）TRACE1012_1753.log
+	strFilename.Format("TRACE%02d%02d_%02d%02d%02d.log",
+		pTime.tm_mon+1, pTime.tm_mday,
+		pTime.tm_hour, pTime.tm_min, pTime.tm_sec );
+#else
 	char	path[MAX_PATH];
-	
 	GetTempPath(MAX_PATH, path);
 	sprintf_s(m_LogDir, "%s%s", path, "VCVerChanger");
+	strFilename = "TRACE.log";
+#endif
 	CreateDirectory(m_LogDir, NULL);
 
-	sprintf_s(buf, "%s\\%s", m_LogDir, "TRACE.log");
+	sprintf_s(buf, "%s\\%s", m_LogDir, strFilename);
 
 	m_pCFile = new CFile( buf, LOG_DEF_FLAG );
 }
