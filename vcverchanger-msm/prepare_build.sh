@@ -19,4 +19,4 @@ chmod -R 755 $TARGET_DIR
 unzip $RUNTIME_ZIP
 chmod -R 755 $RUNTIME_DIR
 
-cp ${TARGET_DIR}/*.exe ${RUNTIME_DIR}/utils/$TARGET_DIR/
+cp ${TARGET_DIR}/$ARCH/*.exe ${RUNTIME_DIR}/utils/VCVerChanger/

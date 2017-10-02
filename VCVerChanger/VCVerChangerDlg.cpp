@@ -715,11 +715,11 @@ HBRUSH CVCVerChangerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 ////////////////////////////////////////////////////////
 void CVCVerChangerDlg::SettingChange()
 {
-	DWORD dwReturnValue;
+	PDWORD_PTR ReturnValue;
 	TRACE("SettingChange : WM_SETTINGCHANGEメッセージ送信\n");
 	LRESULT Ret = SendMessageTimeout(
 		HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)("Environment"),
-		SMTO_ABORTIFHUNG, 5000, &dwReturnValue);
+		SMTO_ABORTIFHUNG, 5000, ReturnValue);
 	if (!Ret)
 	{
 		TRACE("SettingChange error. (%d)\n", Ret);
