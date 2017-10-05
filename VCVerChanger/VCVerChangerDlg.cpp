@@ -715,7 +715,7 @@ HBRUSH CVCVerChangerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 ////////////////////////////////////////////////////////
 void CVCVerChangerDlg::SettingChange()
 {
-	PDWORD_PTR ReturnValue;
+	PDWORD_PTR ReturnValue = NULL;
 	TRACE("SettingChange : WM_SETTINGCHANGEメッセージ送信\n");
 	LRESULT Ret = SendMessageTimeout(
 		HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)("Environment"),
@@ -920,12 +920,12 @@ bool CVCVerChangerDlg::ChangeProgramFilesPath(CString path,
 		TRACE("ChangeProgramFilesPath : 64bit->32bitへ切替\n");
 		outPath.Replace(m_x64Path, m_x86Path);
 		
-		//%OpenCV_DIR%が含まれているか？
-		findpos = path.Find("%OpenCV_DIR%");
+		//OpenCVが含まれているか？
+		findpos = path.Find("OpenCV");
 		if (findpos != -1)
 		{
 			//64bit->32bit
-			outPath.Replace("%OpenCV_DIR%x64", "%OpenCV_DIR%x86");
+			outPath.Replace("\\x64\\", "\\x86\\");
 		}
 		ret = true;
 	}
@@ -935,12 +935,12 @@ bool CVCVerChangerDlg::ChangeProgramFilesPath(CString path,
 		TRACE("ChangeProgramFilesPath : 32bit->64bitへ切替\n");
 		outPath.Replace(m_x86Path, m_x64Path);
 
-		//%OpenCV_DIR%が含まれているか？
-		findpos = path.Find("%OpenCV_DIR%");
+		//OpenCVが含まれているか？
+		findpos = path.Find("OpenCV");
 		if (findpos != -1)
 		{
 			//32bit->64bit
-			outPath.Replace("%OpenCV_DIR%x86", "%OpenCV_DIR%x64");
+			outPath.Replace("\\x86\\", "\\x64\\");
 		}
 		ret = true;
 	}
