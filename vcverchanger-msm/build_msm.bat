@@ -16,7 +16,7 @@
 
 if not defined INSTALL_VERSION set INSTALL_VERSION=1.2.0
 if not defined REPOSITORY set REPOSITORY=openrtm.org
-if not defined BASE_URL set BASE_URL=http://%REPOSITORY%/pub/Windows/OpenRTM-aist/msi-buildtools/%INSTALL_VERSION%
+if not defined BASE_URL set BASE_URL=https://%REPOSITORY%/pub/Windows/OpenRTM-aist/msi-buildtools/%INSTALL_VERSION%
 if not defined BINARY set BINARY=VCVerChanger-binary.zip
 if not defined TOOL_VERSION set TOOL_VERSION=1.0.0
 if not defined ARCH set ARCH=x86
@@ -33,7 +33,7 @@ set GUIDS_FILE=%PWD%\VCVerChanger_guids.txt
 
 @rem ------------------------------------------------------------
 @rem  downloading common scripts 
-set URL=http://openrtm.org/svn/msi-buildtool/trunk/scripts
+set URL=https://openrtm.org/svn/msi-buildtool/trunk/scripts
 %SHELL%svn co --username %SVN_USER% --password %SVN_USER_PASSWD% %URL% scripts
 
 @rem ------------------------------------------------------------
