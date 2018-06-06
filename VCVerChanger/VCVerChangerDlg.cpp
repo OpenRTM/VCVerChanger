@@ -559,9 +559,17 @@ int CVCVerChangerDlg::PathDoubleDefinitionCheck(CString Path)
 	//C:\Program Files\OpenRTM-aist\1.1.2\bin\%RTM_VC_VERSION%
 	//C:\Program Files (x86)\OpenRTM-aist\1.1.2\bin\%RTM_VC_VERSION%
 	//この状態かどうかをチェックする
+	//（2018/05 この判断ではまずいと判明. confファイルのバックアップなどが
+	//　残っている場合があるので）
+  
+	//bin\%RTM_VC_VERSION%にはconfファイルがあり、ユーザによりバックアップ
+	//ファイル等が作成されるとアンインストール後も残ってしまう。
+	//このため判定には下記のPATHを利用する
+	//C:\Program Files (x86)\OpenRTM-aist\1.2.0\omniORB\4.2.2_%RTM_VC_VERSION%\bin\x86_win32
+	//C:\Program Files\OpenRTM-aist\1.2.0\omniORB\4.2.2_%RTM_VC_VERSION%\bin\x86_win32
 
-	//%RTM_ROOT%bin\%RTM_VC_VERSION%のパスを生成
-	binPath.Format("%sbin\\%s", LPCTSTR(m_RtmRoot), LPCTSTR(m_VcVersion));
+	//%OMNI_ROOT%bin\x86_win32のパスを生成
+	binPath.Format("%sbin\\x86_win32", LPCTSTR(m_OmniRoot));
 	//パスの存在確認
 	if (::PathFileExistsA(binPath) && ::PathIsDirectoryA(binPath))
 	{
@@ -868,7 +876,11 @@ int CVCVerChangerDlg::InstalledArchCheck()
 	int findpos = 0;
 	int ret = -1;
 
-	str = m_OpenrtmDir;
+	//confファイルのバックアップなどがある場合、アンインストール後も
+	//OpenRTM-aistディレクトリが残る場合がある。そのためOMNI_ROOTで
+	//示しているディレクトリを存在確認に利用する
+
+	str = m_OmniRoot;
 	//32bit版確認
 	findpos = str.Find(m_x86Path);
 	if (findpos != -1)
