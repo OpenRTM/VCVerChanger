@@ -33,8 +33,8 @@ set GUIDS_FILE=%PWD%\VCVerChanger_guids.txt
 
 @rem ------------------------------------------------------------
 @rem  downloading common scripts 
-set URL=https://openrtm.org/svn/msi-buildtool/trunk/scripts
-%SHELL%svn co --username %SVN_USER% --password %SVN_USER_PASSWD% %URL% scripts
+if not defined REPO_URL set REPO_URL=https://openrtm.org/svn/msi-buildtool/trunk/scripts
+%SHELL%svn co --username %SVN_USER% --password %SVN_USER_PASSWD% %REPO_URL% scripts
 
 @rem ------------------------------------------------------------
 @rem  unzip binary files 
