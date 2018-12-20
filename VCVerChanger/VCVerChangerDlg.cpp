@@ -443,38 +443,49 @@ int CVCVerChangerDlg::FindStringFromTargetPath(
 			//%%変数を展開しない
 			replaceStr = orgStr;
 		}
+			
 		//指定文字列を含むパスだけ抜き出す
 		findpos = replaceStr.Find(str);
 		if (findpos != -1)
 		{
-			if (repRet)
+			//パスの存在確認
+			if (::PathFileExistsA(replaceStr) && ::PathIsDirectoryA(replaceStr))
 			{
-				//%%変数が含まれていて展開した
-				//GUIでは複数のパスは改行表示させる
-				outForGUI = outForGUI + replaceStr + "\n";
-				openrtmGUIPath[openrtmPathCount] = replaceStr;
-				//レジストリ書き戻し用は%%変数利用、;で区切る
-				outForReg = outForReg + orgStr + ";";
-				openrtmRegPath[openrtmPathCount] = orgStr;
-				openrtmPathCount++;
-			}else{
-				//%%変数が含まれていないため展開していない
-				TRACE("FindStringFromTargetPath : %%変数が展開されて登録されている(%s)\n", replaceStr);
-				//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
-				ReplaceFromVCxxToRTMVCVERSION(replaceStr, cnvStr);
-				//改めて%%変数を展開する
-				ReplaceEnv(cnvStr, cnvStr2);
-				fixedGUIPath[fixedPathCount] = cnvStr2;
-				fixedRegPath[fixedPathCount] = cnvStr;
+				//パスは存在している
+				if (repRet)
+				{
+					//%%変数が含まれていて展開した
+					//GUIでは複数のパスは改行表示させる
+					outForGUI = outForGUI + replaceStr + "\n";
+					openrtmGUIPath[openrtmPathCount] = replaceStr;
+					//レジストリ書き戻し用は%%変数利用、;で区切る
+					outForReg = outForReg + orgStr + ";";
+					openrtmRegPath[openrtmPathCount] = orgStr;
+					openrtmPathCount++;
+				}else{
+					//%%変数が含まれていないため展開していない
+					TRACE("FindStringFromTargetPath : %%変数が展開されて登録されている(%s)\n", replaceStr);
+					//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
+					ReplaceFromVCxxToRTMVCVERSION(replaceStr, cnvStr);
+					//改めて%%変数を展開する
+					ReplaceEnv(cnvStr, cnvStr2);
+					fixedGUIPath[fixedPathCount] = cnvStr2;
+					fixedRegPath[fixedPathCount] = cnvStr;
 
+					retVal = -1;
+					fixedPathCount++;
+				}
+			}else{
+				//存在しないパス
+				TRACE("FindStringFromTargetPath : 存在しないパスなので除外する(%s)\n", replaceStr);
 				retVal = -1;
-				fixedPathCount++;
 			}
 		}else{
 			//OpenRTM-aist以外のパスはotherPathに保存しておき
 			//レジストリへの書き込み時に合わせて書き戻す
 			otherPath = otherPath + orgStr + ";";
 		}
+			
 		orgStr = target.Tokenize(";", pos);
 	}
 	if (fixedPathCount > 0)
