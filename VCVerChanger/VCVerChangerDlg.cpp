@@ -131,6 +131,9 @@ BOOL CVCVerChangerDlg::OnInitDialog()
 		}
 	}
 
+	//ダイアログを最上位に表示する
+	SetWindowPos(&wndNoTopMost , 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
 	// このダイアログのアイコンを設定します。アプリケーションのメイン ウィンドウがダイアログでない場合、
 	//  Framework は、この設定を自動的に行います。
 	SetIcon(m_hIcon, TRUE);			// 大きいアイコンの設定
