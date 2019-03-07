@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////////////
+ï»¿/////////////////////////////////////////////////////////////////////////////
 // Name         : TraceLog.cpp
 // Description	: implementation of the TraceLog class
 // Create Date	: 2016.11.02
@@ -31,10 +31,10 @@ CTraceLog::~CTraceLog(void)
 }
 
 ////////////////////////////////////////////////////////
-// ŠÖ”–¼FLogFileOpen
-// ‹@”\@FƒƒOƒtƒ@ƒCƒ‹‚ğŠJ‚­
-// ˆø”@F–³‚µ
-// –ß‚è’lF–³‚µ
+// é–¢æ•°åï¼šLogFileOpen
+// æ©Ÿèƒ½ã€€ï¼šãƒ­ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
+// å¼•æ•°ã€€ï¼šç„¡ã—
+// æˆ»ã‚Šå€¤ï¼šç„¡ã—
 ////////////////////////////////////////////////////////
 void CTraceLog::LogFileOpen(void)
 {
@@ -43,13 +43,13 @@ void CTraceLog::LogFileOpen(void)
 
 #ifdef __TEST__
 	time_t lTime;
-	struct tm pTime;							// ì¬
+	struct tm pTime;							// ä½œæˆæ™‚åˆ»
 	strFilename = "";
 	sprintf_s(m_LogDir, "%s", "Log");
-	time( &lTime );								// long ®”‚Æ‚µ‚Ä‚ğæ“¾
+	time( &lTime );								// long æ•´æ•°ã¨ã—ã¦æ™‚åˆ»ã‚’å–å¾—
 	localtime_s( &pTime, &lTime );
 
-	//ƒƒOƒtƒ@ƒCƒ‹–¼‚ÍA“ú•t{ŠÔ@—ájTRACE1012_1753.log
+	//ãƒ­ã‚°ãƒ•ã‚¡ã‚¤ãƒ«åã¯ã€æ—¥ä»˜ï¼‹æ™‚é–“ã€€ä¾‹ï¼‰TRACE1012_1753.log
 	strFilename.Format("TRACE%02d%02d_%02d%02d%02d.log",
 		pTime.tm_mon+1, pTime.tm_mday,
 		pTime.tm_hour, pTime.tm_min, pTime.tm_sec );
@@ -67,12 +67,12 @@ void CTraceLog::LogFileOpen(void)
 }
 
 ////////////////////////////////////////////////////////
-// ŠÖ”–¼FLogFileWrite
-// ‹@”\@FƒfƒoƒbƒOî•ñ‚ğƒƒOƒtƒ@ƒCƒ‹‚Éo—Í‚·‚é
-// ˆø”@FLPCTSTR lpcszBuf,...: TRACEƒRƒ}ƒ“ƒh‚Æ“¯—l
-// –ß‚è’lF–³‚µ
-// •â‘«  F#define‚Å’è‹`‚·‚é‚±‚Æ‚É‚æ‚èTRACE•¶‚ğæ‚Áæ‚Á‚Ä
-//         ƒƒOƒtƒ@ƒCƒ‹‚Éo—Í‚·‚éB
+// é–¢æ•°åï¼šLogFileWrite
+// æ©Ÿèƒ½ã€€ï¼šãƒ‡ãƒãƒƒã‚°æƒ…å ±ã‚’ãƒ­ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ã«å‡ºåŠ›ã™ã‚‹
+// å¼•æ•°ã€€ï¼šLPCTSTR lpcszBuf,...: TRACEã‚³ãƒãƒ³ãƒ‰ã¨åŒæ§˜
+// æˆ»ã‚Šå€¤ï¼šç„¡ã—
+// è£œè¶³  ï¼š#defineã§å®šç¾©ã™ã‚‹ã“ã¨ã«ã‚ˆã‚ŠTRACEæ–‡ã‚’ä¹—ã£å–ã£ã¦
+//         ãƒ­ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ã«å‡ºåŠ›ã™ã‚‹ã€‚
 ////////////////////////////////////////////////////////
 void CTraceLog::LogFileWrite(LPCTSTR lpcszBuf,...)
 {
@@ -98,19 +98,19 @@ void CTraceLog::LogFileWrite(LPCTSTR lpcszBuf,...)
 }
 
 ////////////////////////////////////////////////////////
-// ŠÖ”–¼FGetTimeString
-// ‹@”\@Fhh:mm:ss.xxx ‚ÌŒ`®‚Åƒ~ƒŠ•b’PˆÊ‚Ì‚ğæ‚·‚é
-// ˆø”@F–³‚µ
-// –ß‚è’lF
+// é–¢æ•°åï¼šGetTimeString
+// æ©Ÿèƒ½ã€€ï¼šhh:mm:ss.xxx ã®å½¢å¼ã§ãƒŸãƒªç§’å˜ä½ã®æ™‚åˆ»ã‚’å–ã™ã‚‹
+// å¼•æ•°ã€€ï¼šç„¡ã—
+// æˆ»ã‚Šå€¤ï¼šæ™‚åˆ»
 ////////////////////////////////////////////////////////
 CString CTraceLog::GetTimeString(void)
 {
 	char szBuf[64];
 	CString Time;
 
-	_strtime_s( szBuf );	// ‚Ìæ“¾
+	_strtime_s( szBuf );	// æ™‚åˆ»ã®å–å¾—
 	struct timeb tstruct;
-	ftime( &tstruct );		// ƒ~ƒŠ•b‚Ìæ“¾
+	ftime( &tstruct );		// ãƒŸãƒªç§’ã®å–å¾—
 	
 	Time.Format("%s.%03d",szBuf,tstruct.millitm);
 	return Time;

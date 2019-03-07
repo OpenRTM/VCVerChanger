@@ -1,74 +1,74 @@
+﻿**********************************************************************
+OpenRTM-aistシステム環境変数設定ツールの解説
+
+仕様：・OpenRTM-aistが設定しているシステム環境変数の設定値を確認できる
+　　　・RTM_VC_VERSIONの変更と、この設定を含んでいるパスを更新できる
+　　　・OpenRTM-aistの32bit版と64bit版の両方がインストールされている
+　　　　場合、パス設定を切り替えることができる
+　　　・多言語（日本語・英語）に対応したので、OSの言語設定に従った
+　　　　画面で起動する
+
+実行条件：OpenRTM-aist 1.1.2版以降のインストール環境。
+　　　　　これ以前のバージョンでは、RTM_VC_VERSIONの環境変数が存在
+　　　　　しないので動作しない。
+
+実行ファイル名：VCVerChanger.exe
+開発環境：Visual Studio 2010 VC++ MFC
+　　（当初、Visual Studio 2013環境で作成したプロジェクトを手動で
+　　　2010用に変換している）
+
+更新日　2017/01/18
+作成者　河内のぶ
 **********************************************************************
-OpenRTM-aist�V�X�e�����ϐ��ݒ�c�[���̉��
 
-�d�l�F�EOpenRTM-aist���ݒ肵�Ă���V�X�e�����ϐ��̐ݒ�l���m�F�ł���
-�@�@�@�ERTM_VC_VERSION�̕ύX�ƁA���̐ݒ���܂�ł���p�X���X�V�ł���
-�@�@�@�EOpenRTM-aist��32bit�ł�64bit�ł̗������C���X�g�[������Ă���
-�@�@�@�@�ꍇ�A�p�X�ݒ��؂�ւ��邱�Ƃ��ł���
-�@�@�@�E������i���{��E�p��j�ɑΉ������̂ŁAOS�̌���ݒ�ɏ]����
-�@�@�@�@��ʂŋN������
+目次
+１．実行条件
+２．操作
+３．ログ
 
-���s�����FOpenRTM-aist 1.1.2�ňȍ~�̃C���X�g�[�����B
-�@�@�@�@�@����ȑO�̃o�[�W�����ł́ARTM_VC_VERSION�̊��ϐ�������
-�@�@�@�@�@���Ȃ��̂œ��삵�Ȃ��B
+■１．実行条件
+・本ツールの開発環境は Visual Studio 2010 VC++ MFC のため、実行には 
+　mfc100.dll が必要である
+・OpenRTM-aist 1.2版のmsiを使ってインストールした場合は、mfc100.dllも
+　一緒にインストールされている
+・本ツールのexeは任意のディレクトリへコピーして実行可能である
 
-���s�t�@�C�����FVCVerChanger.exe
-�J�����FVisual Studio 2010 VC++ MFC
-�@�@�i�����AVisual Studio 2013���ō쐬�����v���W�F�N�g���蓮��
-�@�@�@2010�p�ɕϊ����Ă���j
+■２．操作
 
-�X�V���@2017/01/18
-�쐬�ҁ@�͓��̂�
-**********************************************************************
+▼「確認」ボタン
+・レジストリ値の設定を確認できる
+・現在の設定を確認しないと、更新（レジストリ値の変更）はできない仕様
+・OpenRTM-aist1.1.2版以降がインストールされていないと（環境変数の
+　RTM_VC_VERSIONが存在しないと）、以下のメッセージが表示される
 
-�ڎ�
-�P�D���s����
-�Q�D����
-�R�D���O
+「OpenRTM-aist 1.1.2版以降のバージョンがインストールされているか、
+　確認して下さい。」
 
-���P�D���s����
-�E�{�c�[���̊J������ Visual Studio 2010 VC++ MFC �̂��߁A���s�ɂ� 
-�@mfc100.dll ���K�v�ł���
-�EOpenRTM-aist 1.2�ł�msi���g���ăC���X�g�[�������ꍇ�́Amfc100.dll��
-�@�ꏏ�ɃC���X�g�[������Ă���
-�E�{�c�[����exe�͔C�ӂ̃f�B���N�g���փR�s�[���Ď��s�\�ł���
+▼「更新」ボタン
+・確認処理を実行しないと「更新」ボタンが有効にならない
+・Visual Studio Versionをリストから選択し、更新（変更）できる
+・リストでは「Visual C++ 14 2015」等の表示にしていて、処理では
+　内部バージョン番号の「vc14」を使用している
+・更新状況はメッセージを出力している
+・更新処理は何度でも実行できる
 
-���Q�D����
+▼「切替」ボタン
+・OpenRTM-aistの32bit, 64bit版の両方がインストールされていたら
+　表示される。どちらか一方のバージョンしかインストールされていない
+　場合は表示されない。
+・32bit, 64bitの両バージョンがインストールされたままの状態では、
+　PATHに両方のパスが混じっている
+・切替機能で、指定したバージョンのパスのみに整理される
+・両バージョンがインストールされているか否かの判断は、システム環境
+　変数からは判断できないので、OpenRTM_DIRが示すディレクトリの存在
+　確認で判断している。
 
-���u�m�F�v�{�^��
-�E���W�X�g���l�̐ݒ���m�F�ł���
-�E���݂̐ݒ���m�F���Ȃ��ƁA�X�V�i���W�X�g���l�̕ύX�j�͂ł��Ȃ��d�l
-�EOpenRTM-aist1.1.2�ňȍ~���C���X�g�[������Ă��Ȃ��Ɓi���ϐ���
-�@RTM_VC_VERSION�����݂��Ȃ��Ɓj�A�ȉ��̃��b�Z�[�W���\�������
-
-�uOpenRTM-aist 1.1.2�ňȍ~�̃o�[�W�������C���X�g�[������Ă��邩�A
-�@�m�F���ĉ������B�v
-
-���u�X�V�v�{�^��
-�E�m�F���������s���Ȃ��Ɓu�X�V�v�{�^�����L���ɂȂ�Ȃ�
-�EVisual Studio Version�����X�g����I�����A�X�V�i�ύX�j�ł���
-�E���X�g�ł́uVisual C++ 14 2015�v���̕\���ɂ��Ă��āA�����ł�
-�@�����o�[�W�����ԍ��́uvc14�v���g�p���Ă���
-�E�X�V�󋵂̓��b�Z�[�W���o�͂��Ă���
-�E�X�V�����͉��x�ł����s�ł���
-
-���u�ؑցv�{�^��
-�EOpenRTM-aist��32bit, 64bit�ł̗������C���X�g�[������Ă�����
-�@�\�������B�ǂ��炩����̃o�[�W���������C���X�g�[������Ă��Ȃ�
-�@�ꍇ�͕\������Ȃ��B
-�E32bit, 64bit�̗��o�[�W�������C���X�g�[�����ꂽ�܂܂̏�Ԃł́A
-�@PATH�ɗ����̃p�X���������Ă���
-�E�ؑ֋@�\�ŁA�w�肵���o�[�W�����̃p�X�݂̂ɐ��������
-�E���o�[�W�������C���X�g�[������Ă��邩�ۂ��̔��f�́A�V�X�e����
-�@�ϐ�����͔��f�ł��Ȃ��̂ŁAOpenRTM_DIR�������f�B���N�g���̑���
-�@�m�F�Ŕ��f���Ă���B
-
-���R�D���O
-�E�{�c�[���́Aexe�Ɠ����f�B���N�g���Ƀ��O���t�@�C���ɏo�͂���
-�E���O�t�@�C�����ɂ́A���s�����̓��t��mmdd�`���ŁA������hhmmss�`����
-�@�g�p���Ă���
-�@�@��FTRACE0118_162806.log
-�E���O�t�@�C���ւ̏o�͂́A���Ɏ��s���Ԃ̃^�C���X�^���v���~���b�P�ʂ�
-�@hh:mm:ss.xxx �̌`���ŕt�����Ă���
-�@
-�ȏ�B
+■３．ログ
+・本ツールは、exeと同じディレクトリにログをファイルに出力する
+・ログファイル名には、実行日時の日付をmmdd形式で、時刻をhhmmss形式で
+　使用している
+　　例：TRACE0118_162806.log
+・ログファイルへの出力は、頭に実行時間のタイムスタンプをミリ秒単位の
+　hh:mm:ss.xxx の形式で付加している
+　
+以上。
