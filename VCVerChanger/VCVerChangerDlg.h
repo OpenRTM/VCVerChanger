@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////////////
+ï»¿/////////////////////////////////////////////////////////////////////////////
 // Name			: VCVerChangerDlg.h
 // Create Date	: 2016.10.11
 // Author		: Nobu Kawauchi
@@ -21,24 +21,24 @@ typedef struct ARCH_INFO
 	CString pFilePath;	//Program Files (x86), Program Files
 }ARCH_INFO;
 
-// CVCVerChangerDlg ƒ_ƒCƒAƒƒO
+// CVCVerChangerDlg ãƒ€ã‚¤ã‚¢ãƒ­ã‚°
 class CVCVerChangerDlg : public CDialogEx
 {
-// ƒRƒ“ƒXƒgƒ‰ƒNƒVƒ‡ƒ“
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚·ãƒ§ãƒ³
 public:
-	CVCVerChangerDlg(CWnd* pParent = NULL);	// •W€ƒRƒ“ƒXƒgƒ‰ƒNƒ^[
+	CVCVerChangerDlg(CWnd* pParent = NULL);	// æ¨™æº–ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ãƒ¼
 
-// ƒ_ƒCƒAƒƒO ƒf[ƒ^
+// ãƒ€ã‚¤ã‚¢ãƒ­ã‚° ãƒ‡ãƒ¼ã‚¿
 enum { IDD = IDD_VCVERCHANGER_DIALOG };
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV ƒTƒ|[ƒg
+	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV ã‚µãƒãƒ¼ãƒˆ
 
-// À‘•
+// å®Ÿè£…
 protected:
 	HICON m_hIcon;
 
-	// ¶¬‚³‚ê‚½AƒƒbƒZ[ƒWŠ„‚è“–‚ÄŠÖ”
+	// ç”Ÿæˆã•ã‚ŒãŸã€ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸å‰²ã‚Šå½“ã¦é–¢æ•°
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -55,13 +55,13 @@ public:
 private:
 	void	InitMultilingual();
 	void	Init();
-	bool	RegistryReadProc(); //ƒŒƒWƒXƒgƒŠEƒGƒ“ƒgƒŠ“Çˆ—
-	bool	RegistryWriteProc(CString toDir); //ƒŒƒWƒXƒgƒŠEƒGƒ“ƒgƒŠ‘‚«‚İˆ—
-	bool	RegistryDeleteProc(CString target); //ƒŒƒWƒXƒgƒŠEƒGƒ“ƒgƒŠíœˆ—
+	bool	RegistryReadProc(); //ãƒ¬ã‚¸ã‚¹ãƒˆãƒªãƒ»ã‚¨ãƒ³ãƒˆãƒªèª­è¾¼å‡¦ç†
+	bool	RegistryWriteProc(CString toDir); //ãƒ¬ã‚¸ã‚¹ãƒˆãƒªãƒ»ã‚¨ãƒ³ãƒˆãƒªæ›¸ãè¾¼ã¿å‡¦ç†
+	bool	RegistryDeleteProc(CString target); //ãƒ¬ã‚¸ã‚¹ãƒˆãƒªãƒ»ã‚¨ãƒ³ãƒˆãƒªå‰Šé™¤å‡¦ç†
 	void	RegistryEntryReadErr();
 	void	RegistryEntryErr(LPCTSTR EnvName, LPCTSTR proc);
 
-	//target‚Ì’†‚©‚çw’è•¶š—ñ‚ğŠÜ‚ŞƒpƒX‚ğ”²‚«o‚·
+	//targetã®ä¸­ã‹ã‚‰æŒ‡å®šæ–‡å­—åˆ—ã‚’å«ã‚€ãƒ‘ã‚¹ã‚’æŠœãå‡ºã™
 	int	FindStringFromTargetPath(
 				CString str,
 				CString target,
@@ -69,39 +69,39 @@ private:
 				CString& outForReg,
 				CString& otherPath);
 	
-	bool ReplaceEnv(CString Path, CString& outPath);	//ƒVƒXƒeƒ€ŠÂ‹«•Ï”’l‚ÉŠÜ‚Ü‚ê‚é%•Ï”%‚ğ“WŠJ‚·‚é
-	void    SettingChange();			//WM_SETTINGCHANGEƒƒbƒZ[ƒW‘—M
-	int		InstalledArchCheck();		//OpenRTM-aist‚ÌƒA[ƒLƒeƒNƒ`ƒƒ‚ğ’²‚×‚é
-	bool	CorrectSystemEnvValue();	//OpenRTM-aist‚ÌƒCƒ“ƒXƒg[ƒ‹ó‹µ‚ğ’²‚×‚é
-	void	CleanResult();				//ƒ_ƒCƒAƒƒO‚ÌResult•\¦‰Šú‰»
+	bool ReplaceEnv(CString Path, CString& outPath);	//ã‚·ã‚¹ãƒ†ãƒ ç’°å¢ƒå¤‰æ•°å€¤ã«å«ã¾ã‚Œã‚‹%å¤‰æ•°%ã‚’å±•é–‹ã™ã‚‹
+	void    SettingChange();			//WM_SETTINGCHANGEãƒ¡ãƒƒã‚»ãƒ¼ã‚¸é€ä¿¡
+	int		InstalledArchCheck();		//OpenRTM-aistã®ã‚¢ãƒ¼ã‚­ãƒ†ã‚¯ãƒãƒ£ã‚’èª¿ã¹ã‚‹
+	bool	CorrectSystemEnvValue();	//OpenRTM-aistã®ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«çŠ¶æ³ã‚’èª¿ã¹ã‚‹
+	void	CleanResult();				//ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã®Resultè¡¨ç¤ºåˆæœŸåŒ–
 
-	//w’è‚ÌƒpƒX‚ÉŠÜ‚Ü‚ê‚éProgram Files‚ğØ‚è‘Ö‚¦‚é
+	//æŒ‡å®šã®ãƒ‘ã‚¹ã«å«ã¾ã‚Œã‚‹Program Filesã‚’åˆ‡ã‚Šæ›¿ãˆã‚‹
 	bool	ChangeProgramFilesPath(CString path, 
 					CString toDir, CString& outPath);
 
-	//PATH‚ÉOpenRTM-aist‚Ì32bit/64bit‚Ì—¼’è‹`‚ª‘¶İƒ`ƒFƒbƒN
+	//PATHã«OpenRTM-aistã®32bit/64bitã®ä¸¡å®šç¾©ãŒå­˜åœ¨ãƒã‚§ãƒƒã‚¯
 	int 	PathDoubleDefinitionCheck(CString Path);
 
-	//ARCH_INFO\‘¢‘Ì‚Åw’è‚³‚ê‚½ƒ^ƒCƒv(32bit/64bit)ˆÈŠO‚ÌƒpƒX‚ğœŠO‚·‚é
+	//ARCH_INFOæ§‹é€ ä½“ã§æŒ‡å®šã•ã‚ŒãŸã‚¿ã‚¤ãƒ—(32bit/64bit)ä»¥å¤–ã®ãƒ‘ã‚¹ã‚’é™¤å¤–ã™ã‚‹
 	CString	DeleteUnnecessaryPath(CString path, 
 				CString delimit, ARCH_INFO* info);
     
 	bool	OrganizePath();
 
-	//uvc**v‚Ì•¶š—ñ‚ğu%RTM_VC_VERSION%v‚É’u‚«Š·‚¦‚é
+	//ã€Œvc**ã€ã®æ–‡å­—åˆ—ã‚’ã€Œ%RTM_VC_VERSION%ã€ã«ç½®ãæ›ãˆã‚‹
 	bool	ReplaceFromVCxxToRTMVCVERSION(CString path, CString& outPath);
 
 	CString m_VcVersion;
 	CString m_RtmBase;
 	CString m_RtmRoot;
 	CString m_RtmJavaRoot;
-	CString m_OmniRoot;			//Dialog•\¦—p
-	CString m_OmniRootForReg;	//ƒŒƒWƒXƒgƒŠ‘—pi%•Ï”‚ğŠÜ‚Şj
+	CString m_OmniRoot;			//Dialogè¡¨ç¤ºç”¨
+	CString m_OmniRootForReg;	//ãƒ¬ã‚¸ã‚¹ãƒˆãƒªæ›¸è¾¼ç”¨ï¼ˆ%å¤‰æ•°ã‚’å«ã‚€ï¼‰
 	CString m_OpencvDir;
 	CString m_OpenrtmDir;
-	CString m_RtmPath;			//Dialog•\¦—p
-	CString m_RtmPathForReg;	//ƒŒƒWƒXƒgƒŠ‘—pi%•Ï”‚ğŠÜ‚Şj
-	CString m_otherPath;		//OpenRTM-aistˆÈŠO‚ÌPATHİ’è
+	CString m_RtmPath;			//Dialogè¡¨ç¤ºç”¨
+	CString m_RtmPathForReg;	//ãƒ¬ã‚¸ã‚¹ãƒˆãƒªæ›¸è¾¼ç”¨ï¼ˆ%å¤‰æ•°ã‚’å«ã‚€ï¼‰
+	CString m_otherPath;		//OpenRTM-aistä»¥å¤–ã®PATHè¨­å®š
 	CStatic m_WarningMsg;
 	CStatic m_staticArch;
 	CString m_LogPath;
@@ -116,10 +116,10 @@ private:
 	VISUAL_STUDIO*	m_VSInfo;
 	ARCH_INFO*		m_archInfo;
 
-	//PATH’†‚ÌOpenRTM-aist 32bit/64bit—¼’è‹`ó‘Ô‚ğ¦‚·ƒtƒ‰ƒO
-	bool m_32b64bDualDefineFlg;	//true:—¼•û‚ÌƒpƒX‚ª‘¶İ‚·‚é@flase:‘¶İ‚µ‚È‚¢
+	//PATHä¸­ã®OpenRTM-aist 32bit/64bitä¸¡å®šç¾©çŠ¶æ…‹ã‚’ç¤ºã™ãƒ•ãƒ©ã‚°
+	bool m_32b64bDualDefineFlg;	//true:ä¸¡æ–¹ã®ãƒ‘ã‚¹ãŒå­˜åœ¨ã™ã‚‹ã€€flase:å­˜åœ¨ã—ãªã„
 
-	//OpenRTM-aist 32bit/64bitƒCƒ“ƒXƒg[ƒ‹ó‘Ô‚ğ¦‚·ƒtƒ‰ƒO
-	bool m_32b64bInstFlg;	//true:—¼•ûƒCƒ“ƒXƒg[ƒ‹‚³‚ê‚Ä‚¢‚é@flase:ˆê•û‚Ìƒo[ƒWƒ‡ƒ“‚Ì‚İ
+	//OpenRTM-aist 32bit/64bitã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«çŠ¶æ…‹ã‚’ç¤ºã™ãƒ•ãƒ©ã‚°
+	bool m_32b64bInstFlg;	//true:ä¸¡æ–¹ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã•ã‚Œã¦ã„ã‚‹ã€€flase:ä¸€æ–¹ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã®ã¿
 	
 };

@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////////////
+ï»¿/////////////////////////////////////////////////////////////////////////////
 // Name			: RegistryUtil.h
 // Create Date	: 2017.01.10
 // Author		: Nobu Kawauchi
@@ -13,11 +13,11 @@ public:
 	CRegistryUtil(void);
 	~CRegistryUtil(void);
     
-    //ƒŒƒWƒXƒgƒŠƒL[‚Ìopen/close
+    //ãƒ¬ã‚¸ã‚¹ãƒˆãƒªã‚­ãƒ¼ã®open/close
 	void    RegOpen(void);			
 	void	RegClose(void);
     
-	//ƒŒƒWƒXƒgƒŠƒGƒ“ƒgƒŠ‚Ìread/write
+	//ãƒ¬ã‚¸ã‚¹ãƒˆãƒªã‚¨ãƒ³ãƒˆãƒªã®read/write
 	CString ReadEnv(LPCTSTR EnvName);
 	bool	WriteEnv(LPCTSTR EnvName, DWORD type, CString str);
 	bool	DeleteEnv(LPCTSTR EnvName);
