@@ -248,9 +248,7 @@ void CVCVerChangerDlg::Init()
 
 	VISUAL_STUDIO vc_ver[] = {
 		{"Visual Studio 17", "vc17"},
-		{"Visual Studio 16 2019", "vc14"},
-		{"Visual Studio 15 2017", "vc14"},
-		{"Visual Studio 14 2015", "vc14"},
+		{"Visual Studio 14 2015, 2017, 2019", "vc14"},
 		{"Visual Studio 12 2013", "vc12"},
 		{"Visual Studio 11 2012", "vc11"},
 		{"Visual Studio 10 2010", "vc10"},
