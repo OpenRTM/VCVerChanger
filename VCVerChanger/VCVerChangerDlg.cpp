@@ -68,6 +68,7 @@ CVCVerChangerDlg::CVCVerChangerDlg(CWnd* pParent /*=NULL*/)
 	, m_VcVersion(_T(""))
 	, m_StatusMsg(_T(""))
 	, m_LogPath(_T(""))
+	, m_RtmIdlDir(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -89,6 +90,7 @@ void CVCVerChangerDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_VS_VER, m_VSVer);
 	DDX_Control(pDX, IDC_STATIC_ARCH, m_staticArch);
 	DDX_Text(pDX, IDC_LOG_PATH, m_LogPath);
+	DDX_Text(pDX, IDC_RTM_IDL_DIR, m_RtmIdlDir);
 }
 
 BEGIN_MESSAGE_MAP(CVCVerChangerDlg, CDialogEx)
@@ -1110,6 +1112,14 @@ bool CVCVerChangerDlg::RegistryReadProc()
 	}
 	m_OpenrtmDir = EnvValue;
 
+	EnvValue = m_RegistryUtil.ReadEnv("RTM_IDL_DIR");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("RTM_IDL_DIR", "Read");
+		return false;
+	}
+	m_RtmIdlDir = EnvValue;
+
 	EnvValue = m_RegistryUtil.ReadEnv("PATH");
 	if (EnvValue == "")
 	{
@@ -1275,6 +1285,14 @@ bool CVCVerChangerDlg::RegistryWriteProc(CString toDir)
 			RegistryEntryErr("OpenRTM_DIR", "Write");
 			return false;
 		}
+
+		ChangeProgramFilesPath(m_RtmIdlDir, toDir, outpath);
+		ret1 = m_RegistryUtil.WriteEnv("RTM_IDL_DIR", REG_SZ, outpath);
+		if (!ret1)
+		{
+			RegistryEntryErr("RTM_IDL_DIR", "Write");
+			return false;
+		}
 	}
 
 	ret = ChangeProgramFilesPath(m_RtmPathForReg, toDir, outpath);
@@ -1360,6 +1378,12 @@ bool CVCVerChangerDlg::RegistryDeleteProc(CString target)
 		if (!ret)
 		{
 			RegistryEntryErr("OpenRTM_DIR", "Delete");
+			return false;
+		}
+		ret = m_RegistryUtil.DeleteEnv("RTM_IDL_DIR");
+		if (!ret)
+		{
+			RegistryEntryErr("RTM_IDL_DIR", "Delete");
 			return false;
 		}
 
@@ -1457,6 +1481,7 @@ void CVCVerChangerDlg::CleanResult()
 	m_OmniRoot = "";
 	m_OpencvDir = "";
 	m_OpenrtmDir = "";
+	m_RtmIdlDir = "";
 	m_RtmPath = "";
 	UpdateData(FALSE);
 }

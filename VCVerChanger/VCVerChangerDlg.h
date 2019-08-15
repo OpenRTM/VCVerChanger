@@ -105,6 +105,7 @@ private:
 	CStatic m_WarningMsg;
 	CStatic m_staticArch;
 	CString m_LogPath;
+	CString m_RtmIdlDir;
 
 	CRegistryUtil m_RegistryUtil;
 	CString m_StatusMsg;

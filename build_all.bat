@@ -30,7 +30,5 @@ rem ------------------------------------------------------------
 rem make zip package
 rem ------------------------------------------------------------
 if exist %ZIP_FILE% del %ZIP_FILE%
-set PATH=%PATH%;C:\cygwin\bin;C:\cygwin64\bin
-c:\cygwin64\bin\zip -r %ZIP_FILE% %OUTPUT_DIR%
-
+powershell Compress-Archive .\%OUTPUT_DIR% -DestinationPath .\%ZIP_FILE%
 @echo on
