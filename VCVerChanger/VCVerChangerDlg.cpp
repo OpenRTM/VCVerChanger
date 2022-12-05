@@ -450,29 +450,33 @@ int CVCVerChangerDlg::FindStringFromTargetPath(
 			//パスの存在確認
 			if (::PathFileExistsA(replaceStr) && ::PathIsDirectoryA(replaceStr))
 			{
-				//パスは存在している
+				//パスは存在していて%変数を展開している
 				if (repRet)
 				{
 					//%%変数が含まれていて展開した
 					//GUIでは複数のパスは改行表示させる
 					outForGUI = outForGUI + replaceStr + "\n";
 					openrtmGUIPath[openrtmPathCount] = replaceStr;
-					//レジストリ書き戻し用は%%変数利用、;で区切る
-					outForReg = outForReg + orgStr + ";";
-					openrtmRegPath[openrtmPathCount] = orgStr;
+					//レジストリ書き戻し用は%%変数利用から展開したものに変更、;で区切る
+					outForReg = outForReg + replaceStr + ";";
+					openrtmRegPath[openrtmPathCount] = replaceStr;
 					openrtmPathCount++;
+					retVal = -1;
 				}else{
 					//%%変数が含まれていないため展開していない
 					TRACE("FindStringFromTargetPath : %%変数が展開されて登録されている(%s)\n", replaceStr);
-					//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
-					ReplaceFromVCxxToRTMVCVERSION(replaceStr, cnvStr);
-					//改めて%%変数を展開する
-					ReplaceEnv(cnvStr, cnvStr2);
-					fixedGUIPath[fixedPathCount] = cnvStr2;
-					fixedRegPath[fixedPathCount] = cnvStr;
-
-					retVal = -1;
-					fixedPathCount++;
+					outForGUI = outForGUI + replaceStr + "\n";
+//レジストリ登録では%%変数は使用しない仕様に変更したので、下記処理は不要
+//念のためコメントアウトしておく
+//					//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
+//					ReplaceFromVCxxToRTMVCVERSION(replaceStr, cnvStr);
+//					//改めて%%変数を展開する
+//					ReplaceEnv(cnvStr, cnvStr2);
+//					fixedGUIPath[fixedPathCount] = cnvStr2;
+//					fixedRegPath[fixedPathCount] = cnvStr;
+//
+//					retVal = -1;
+//					fixedPathCount++;
 				}
 			}else{
 				//存在しないパス
@@ -515,7 +519,67 @@ int CVCVerChangerDlg::FindStringFromTargetPath(
 		
 	}
 	TRACE("FindStringFromTargetPath : otherPath : %s\n", otherPath);
+	TRACE("FindStringFromTargetPath : outForGUI : %s\n", outForGUI);
 	return retVal;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：ReplaceVCxxInPath
+// 機能　：targetの中から指定文字列を含むパスを抜き出し
+//    vc**を更新し、レジストリ書込用区切り文字";"の
+//　　パターンを返す。(out1）
+//　　targetから指定文字列を除外した残りをout2として返す
+// 引数
+//   :in1  :str       :指定文字列
+//   :in2  :target    :対象PATH
+//   :out1 :outForReg :区切り文字";"（レジストリ書込用）
+//   :out2 :otherPath :targetの指定文字列以外の部分
+// 戻り値：true :正常　false:異常
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::ReplaceVCxxInPath(
+				CString str,
+				CString target,
+				CString& outForReg,
+				CString& otherPath)
+{
+	CString replaceStr, orgStr, cnvStr, cnvStr2;
+	CString openrtmGUIPath[10], openrtmRegPath[10];
+	CString fixedGUIPath[10], fixedRegPath[10];
+	int pos, findpos, retVal, fixedPathCount, openrtmPathCount;
+	bool ret = true;
+
+	pos = findpos = retVal = fixedPathCount = openrtmPathCount = 0;
+
+	//受け取ったtargetのpathを";"で分割する
+	orgStr = target.Tokenize(";", pos);
+	while (orgStr != "")
+	{
+		//指定文字列を含むパスだけ抜き出す
+		findpos = orgStr.Find(str);
+		if (findpos != -1)
+		{
+			//更新前のvc**を探す
+			findpos = orgStr.Find(m_VcVersion);
+			if (findpos != -1 )
+			{
+				replaceStr = orgStr;
+				replaceStr.Replace(m_VcVersion, m_newVcVersion);
+				TRACE("ReplaceVCxxInPath : 変更前パス(%s)\n", orgStr);
+				TRACE("ReplaceVCxxInPath : 変更後パス(%s)\n", replaceStr);
+				//レジストリ書き戻し用は、;で区切る
+				outForReg = outForReg + replaceStr + ";";
+			}else{
+				TRACE("ReplaceVCxxInPath : (%s)が含まれないパスと判断(%s)\n", m_VcVersion, orgStr);
+				ret = false;
+			}
+		}else{
+			//OpenRTM-aist以外のパスはotherPathに保存しておき
+			//レジストリへの書き込み時に合わせて書き戻す
+			otherPath = otherPath + orgStr + ";";
+		}
+		orgStr = target.Tokenize(";", pos);
+	}
+	return ret;
 }
 
 ////////////////////////////////////////////////////////
@@ -653,6 +717,8 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 	CString Msg1, Msg2, Msg3, input;
 	int i;
 	bool ret;
+	CString EnvValue = "";
+	CString outForReg, otherPath, path;
 
 	TRACE("OnBnClickedUpdate : 更新ボタン処理\n");
 	m_StatusMsg.LoadString(IDS_STATUS_1);
@@ -663,20 +729,72 @@ void CVCVerChangerDlg::OnBnClickedUpdate()
 	{
 		if(input == m_VSInfo[i].Release_Ver)
 		{
-			m_VcVersion = m_VSInfo[i].Internal_Ver;
+			m_newVcVersion = m_VSInfo[i].Internal_Ver;
 			break;
 		}
 	}
-	TRACE("OnBnClickedUpdate : Combo Boxの入力値 : m_VcVersion : %s\n", m_VcVersion);
+	TRACE("OnBnClickedUpdate : Combo Boxの入力値 : m_newVcVersion : %s\n", m_newVcVersion);
+	TRACE("OnBnClickedUpdate : 更新前の値 : m_VcVersion : %s\n", m_VcVersion);
 
 	m_RegistryUtil.RegOpen();
 
 	//レジストリエントリ　書き込み
-	ret = m_RegistryUtil.WriteEnv("RTM_VC_VERSION", REG_SZ, m_VcVersion);	
+	ret = m_RegistryUtil.WriteEnv("RTM_VC_VERSION", REG_SZ, m_newVcVersion);
 	if (!ret)
 	{
 		RegistryEntryErr("RTM_VC_VERSIN", "Write");
 		m_RegistryUtil.RegClose();
+		return;
+	}
+
+	//OMNI_ROOT
+	EnvValue = m_RegistryUtil.ReadEnv("OMNI_ROOT");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("OMNI_ROOT", "Read");
+		return;
+	}
+	//OMNI_ROOTに含まれるvc**の更新
+	ret = ReplaceVCxx(EnvValue, m_OmniRoot);
+	if (ret)
+	{
+		//この書式でレジストリに書き込む
+		ret = m_RegistryUtil.WriteEnv("OMNI_ROOT", REG_SZ, m_OmniRoot);
+		if (!ret)
+		{
+			RegistryEntryErr("OMNI_ROOT", "Write");
+			return;
+		}
+	}
+
+	//PATH
+	EnvValue = m_RegistryUtil.ReadEnv("PATH");
+	if (EnvValue == "")
+	{
+		RegistryEntryErr("PATH", "Read");
+		return;
+	}
+
+	//PATHからOpenRTM-aistが設定したパスを切り出す
+	//この時点で、パスに含まれる%RTM_VC_VERSION%はvc**に変換されている
+	//vc**を更新する
+	outForReg = otherPath = "";
+	ret = ReplaceVCxxInPath("OpenRTM-aist", EnvValue,
+						outForReg, otherPath);
+	if (ret)
+	{
+		//PATH内容を編集しているので、書き込んでから改めて読み出す
+		//PATHには%変数を含まないようにしたので、レジストリのエントリ型は
+		//REG_SZを指定する
+		path = otherPath + outForReg;
+		ret = m_RegistryUtil.WriteEnv("PATH", REG_EXPAND_SZ, path);
+		if (!ret)
+		{
+			RegistryEntryErr("PATH", "Write");
+			return;
+		}
+	}else{
+		RegistryEntryErr("PATH", "ReplaceVCxxInPath");
 		return;
 	}
 
@@ -1091,8 +1209,20 @@ bool CVCVerChangerDlg::RegistryReadProc()
 	//レジストリ書き戻し用
 	m_OmniRootForReg = EnvValue; 
 	//GUI表示用は%OMNI_ROOT%を展開させる
-	ReplaceEnv(EnvValue, m_OmniRoot);
-
+	bRet = ReplaceEnv(EnvValue, m_OmniRoot);
+	if (bRet)
+	{
+		//%変数%を展開したので、この書式でレジストリに書き込む
+		bRet = m_RegistryUtil.WriteEnv("OMNI_ROOT", REG_SZ, m_OmniRoot);
+		if (!bRet)
+		{
+			RegistryEntryErr("OMNI_ROOT", "Write");
+			return false;
+		}
+		m_OmniRootForReg = m_OmniRoot;
+		//WM_SETTINGCHANGE
+		SettingChange();
+	}
 	EnvValue = m_RegistryUtil.ReadEnv("OpenCV_DIR");
 	if (EnvValue == "")
 	{
@@ -1130,7 +1260,9 @@ bool CVCVerChangerDlg::RegistryReadProc()
 						outForGUI, outForReg, otherPath); 
 	if (ret == -1)
 	{
-		//PATH内容を編集しているので、書き込んでから改めて読み出す
+		TRACE("RegistryReadProc: PATH内容を編集しているので、書き込んでから改めて読み出す\n");
+		//OpenRTM関連のPATHには%変数を含まないようにしたが、他のパスのため
+		//レジストリのエントリ型はREG_EXPAND_SZを指定する
 		path = otherPath + outForReg;
 		bRet = m_RegistryUtil.WriteEnv("PATH", REG_EXPAND_SZ, path);
 		if (!bRet)
@@ -1150,6 +1282,8 @@ bool CVCVerChangerDlg::RegistryReadProc()
 		outForGUI = outForReg = otherPath = "";
 		FindStringFromTargetPath("OpenRTM-aist", EnvValue,
 						outForGUI, outForReg, otherPath); 
+	}else{
+		TRACE("RegistryReadProc: PATHの変更なし\n");
 	}
 	m_RtmPath = outForGUI;
 	m_RtmPathForReg = outForReg;
@@ -1223,8 +1357,12 @@ bool  CVCVerChangerDlg::ReplaceEnv(CString Path, CString& outPath)
 ////////////////////////////////////////////////////////
 // 関数名：RegistryWriteProc
 // 機能　：レジストリ更新処理
-// 引数　：無し
-// 戻り値：無し  
+//     この処理はOpenRTM1.2.2まではが32bit版、64bit版の両方を
+//     提供していてそれらの変更に対応するための処理。
+//     OpenRTM2.0.0以降は64bit版のみのリリースなので、本関数は
+//     使用しない。
+// 引数　：CString toDir    :このディレクトリへ変換する
+// 戻り値：true :正常　false:異常
 ////////////////////////////////////////////////////////
 bool CVCVerChangerDlg::RegistryWriteProc(CString toDir)
 {
@@ -1307,6 +1445,44 @@ bool CVCVerChangerDlg::RegistryWriteProc(CString toDir)
 	}
 
 	return true;
+}
+
+////////////////////////////////////////////////////////
+// 関数名：ReplaceVCxx
+// 機能　：パスに含まれるvc**の更新してレジストリに書き込む
+//     OpenRTM2.0.1以降はパスに%RTM_VC_VERSION%は含めない
+//     ことになった。このため、vc** の部分を書き換える。
+//     対象はOMNI_ROOTとPATH
+// 引数　：CString Path　　：更新前のパス
+//     　：CString& outPath：更新後のパス
+// 戻り値：true :正常　false:異常
+////////////////////////////////////////////////////////
+bool CVCVerChangerDlg::ReplaceVCxx(CString Path, CString& outPath)
+{
+	CString str1, str2, str3, src;
+	int VER_len, OMNI_len, CV_len;
+	bool ret = false;
+
+	VER_len = m_VcVersion.GetLength();
+	CString tmp = "%OMNI_ROOT%";
+	OMNI_len = tmp.GetLength();
+	tmp = "%OpenCV_DIR%";
+	CV_len = tmp.GetLength();
+
+	src = Path;
+	int ptr = src.Find(m_VcVersion);
+	if (ptr != -1)
+	{
+		str1 = src.Mid(0, ptr);
+		str2 = src.Mid(ptr + VER_len);
+		str3.Format("%s%s%s", LPCTSTR(str1),
+						LPCTSTR(m_newVcVersion), LPCTSTR(str2));
+		src = str3;
+		TRACE("ReplaceVCxx : %s\n", src);
+		ret = true;
+	}
+	outPath = src;
+	return ret;
 }
 
 ////////////////////////////////////////////////////////

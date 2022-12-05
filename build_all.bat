@@ -12,6 +12,7 @@ rem ------------------------------------------------------------
 rem build (64bit)
 rem ------------------------------------------------------------
 set ARCH=x86_64
+if exist %OUTPUT_DIR% rmdir /s/q %OUTPUT_DIR%
 mkdir %OUTPUT_DIR%\%ARCH%
 
 call build.bat

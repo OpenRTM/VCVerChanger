@@ -90,6 +90,8 @@ CString CRegistryUtil::ReadEnv(LPCTSTR EnvName)
 // 機能　：レジストリエントリ書き込み
 // 引数　：LPCTSTR EnvName　: エントリ名
 //         DWORD type       : エントリの型
+//                          : REG_SZ(パスに%変数を含まない)
+//                          : REG_EXPAND_SZ(パスに%変数を含む)
 //         CString str      : エントリ値
 // 戻り値：true:正常終了　false:書き込みエラー
 ////////////////////////////////////////////////////////

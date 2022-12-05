@@ -91,7 +91,17 @@ private:
 	//「vc**」の文字列を「%RTM_VC_VERSION%」に置き換える
 	bool	ReplaceFromVCxxToRTMVCVERSION(CString path, CString& outPath);
 
+	//一度チェック済みのPATHからOpenRTMを含むパスを抜き出しvc**を更新する
+	bool ReplaceVCxxInPath(
+				CString str,
+				CString target,
+				CString& outForReg,
+				CString& otherPath);
+	bool ReplaceVCxx(CString Path, CString& outPath);
+
+
 	CString m_VcVersion;
+	CString m_newVcVersion;
 	CString m_RtmBase;
 	CString m_RtmRoot;
 	CString m_RtmJavaRoot;
