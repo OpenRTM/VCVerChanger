@@ -71,5 +71,8 @@
     <Image Include="res\rtm.ico">
       <Filter>リソース ファイル</Filter>
     </Image>
+    <Image Include="res\VCVerChanger.ico">
+      <Filter>リソース ファイル</Filter>
+    </Image>
   </ItemGroup>
 </Project>
