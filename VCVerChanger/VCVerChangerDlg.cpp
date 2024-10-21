@@ -250,7 +250,6 @@ void CVCVerChangerDlg::Init()
 
 	VISUAL_STUDIO vc_ver[] = {
 		{"Visual Studio 16 2019, 2022", "vc16"},
-		{"Visual Studio 14 2015, 2017", "vc14"},
 	};
 	const int vcNum = sizeof vc_ver / sizeof vc_ver[0];
 
